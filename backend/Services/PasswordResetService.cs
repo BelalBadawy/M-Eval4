@@ -11,7 +11,7 @@ public interface IPasswordResetService
 {
     Task<bool> RequestPasswordResetAsync(string email, string ipAddress);
     Task<(bool Success, string? ErrorReason, IEnumerable<string>? ValidationErrors)> ResetPasswordAsync(string token, string newPassword, string ipAddress);
-    Task<(bool Success, string? ErrorReason)> ForceResetPasswordAsync(Guid userId, string adminIpAddress);
+    Task<(bool Success, string? ErrorReason)> ForceResetPasswordAsync(int userId, string adminIpAddress);
 }
 
 public class PasswordResetService : IPasswordResetService
@@ -71,7 +71,6 @@ public class PasswordResetService : IPasswordResetService
 
         var resetToken = new PasswordResetToken
         {
-            Id = Guid.NewGuid(),
             UserId = user.Id,
             TokenHash = tokenHash,
             CreatedAtUtc = DateTime.UtcNow,
@@ -137,7 +136,7 @@ public class PasswordResetService : IPasswordResetService
         return (true, null, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> ForceResetPasswordAsync(Guid userId, string adminIpAddress)
+    public async Task<(bool Success, string? ErrorReason)> ForceResetPasswordAsync(int userId, string adminIpAddress)
     {
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Id == userId && u.SoftDeletedAtUtc == null);

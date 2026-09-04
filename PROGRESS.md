@@ -50,6 +50,7 @@ See `.agents/adr/`.
 
 | ADR | Decision | Plan |
 | 1 | ASP.NET Core Minimal APIs + EF Core + SQL Server Stack | 1.auth-and-user-provisioning |
+| 2 | Integer Identity Primary and Foreign Keys | 1.auth-and-user-provisioning |
 
 
 ## Plans

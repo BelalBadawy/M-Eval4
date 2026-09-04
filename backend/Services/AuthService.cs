@@ -11,9 +11,9 @@ namespace MEval.Api.Services;
 public interface IAuthService
 {
     Task<(bool Success, LoginResponse? Response, string? ErrorReason, int? LockoutMinutes)> LoginAsync(string email, string password, string ipAddress);
-    Task<(bool Success, LoginResponse? Response, string? ErrorReason, IEnumerable<string>? ValidationErrors)> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, string ipAddress);
-    Task<bool> LogoutAsync(Guid userId, string ipAddress);
-    Task<SessionResponse?> GetSessionAsync(Guid userId, string ipAddress);
+    Task<(bool Success, LoginResponse? Response, string? ErrorReason, IEnumerable<string>? ValidationErrors)> ChangePasswordAsync(int userId, string currentPassword, string newPassword, string ipAddress);
+    Task<bool> LogoutAsync(int userId, string ipAddress);
+    Task<SessionResponse?> GetSessionAsync(int userId, string ipAddress);
 }
 
 public class AuthService : IAuthService
@@ -123,7 +123,7 @@ public class AuthService : IAuthService
         return (true, new LoginResponse(accessToken, rawRefreshToken, summary), null, null);
     }
 
-    public async Task<(bool Success, LoginResponse? Response, string? ErrorReason, IEnumerable<string>? ValidationErrors)> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, string ipAddress)
+    public async Task<(bool Success, LoginResponse? Response, string? ErrorReason, IEnumerable<string>? ValidationErrors)> ChangePasswordAsync(int userId, string currentPassword, string newPassword, string ipAddress)
     {
         var user = await _context.Users
             .Include(u => u.UserRoles)
@@ -181,12 +181,12 @@ public class AuthService : IAuthService
         return (true, new LoginResponse(accessToken, rawRefreshToken, summary), null, null);
     }
 
-    public async Task<bool> LogoutAsync(Guid userId, string ipAddress)
+    public async Task<bool> LogoutAsync(int userId, string ipAddress)
     {
         return await _tokenService.RevokeActiveSessionAsync(userId, RevokeReasons.UserLogout, ipAddress);
     }
 
-    public async Task<SessionResponse?> GetSessionAsync(Guid userId, string ipAddress)
+    public async Task<SessionResponse?> GetSessionAsync(int userId, string ipAddress)
     {
         var user = await _context.Users
             .Include(u => u.UserRoles)

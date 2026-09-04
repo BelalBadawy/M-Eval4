@@ -11,46 +11,46 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _databaseName = Guid.NewGuid().ToString();
 
-    public Guid TestUserId { get; } = Guid.NewGuid();
+    public int TestUserId { get; } = 1;
     public string TestUserEmail { get; } = "john.doe@meval.local";
     public string TestUserPassword { get; } = "Mina@123";
 
-    public Guid GatewayUserId { get; } = Guid.NewGuid();
+    public int GatewayUserId { get; } = 2;
     public string GatewayUserEmail { get; } = "gateway.user@meval.local";
 
-    public Guid LockoutUserId { get; } = Guid.NewGuid();
+    public int LockoutUserId { get; } = 3;
     public string LockoutUserEmail { get; } = "lockout.user@meval.local";
 
-    public Guid ChangePassReuseUserId { get; } = Guid.NewGuid();
+    public int ChangePassReuseUserId { get; } = 4;
     public string ChangePassReuseUserEmail { get; } = "changepass.reuse@meval.local";
 
-    public Guid ChangePassSuccessUserId { get; } = Guid.NewGuid();
+    public int ChangePassSuccessUserId { get; } = 5;
     public string ChangePassSuccessUserEmail { get; } = "changepass.success@meval.local";
 
-    public Guid RateLimitUserId { get; } = Guid.NewGuid();
+    public int RateLimitUserId { get; } = 6;
     public string RateLimitUserEmail { get; } = "ratelimit.user@meval.local";
 
-    public Guid ResetUserId { get; } = Guid.NewGuid();
+    public int ResetUserId { get; } = 7;
     public string ResetUserEmail { get; } = "reset.user@meval.local";
 
-    public Guid ForceResetUserId { get; } = Guid.NewGuid();
+    public int ForceResetUserId { get; } = 8;
     public string ForceResetUserEmail { get; } = "forcereset.user@meval.local";
 
-    public Guid AdminUserId { get; } = Guid.NewGuid();
+    public int AdminUserId { get; } = 9;
     public string AdminUserEmail { get; } = "admin.user@meval.local";
 
-    public Guid SuperAdminUserId { get; } = Guid.NewGuid();
+    public int SuperAdminUserId { get; } = 10;
     public string SuperAdminUserEmail { get; } = "superadmin.user@meval.local";
 
-    public Guid NormalUserId { get; } = Guid.NewGuid();
+    public int NormalUserId { get; } = 11;
     public string NormalUserEmail { get; } = "normal.user@meval.local";
 
-    public Guid TargetUser1Id { get; } = Guid.NewGuid();
-    public Guid TargetUser2Id { get; } = Guid.NewGuid();
+    public int TargetUser1Id { get; } = 12;
+    public int TargetUser2Id { get; } = 13;
 
-    public Guid AdminRoleId { get; } = Guid.NewGuid();
-    public Guid UserRoleId { get; } = Guid.NewGuid();
-    public Guid SuperAdminRoleId { get; } = Guid.NewGuid();
+    public int SuperAdminRoleId { get; } = 1;
+    public int AdminRoleId { get; } = 2;
+    public int UserRoleId { get; } = 3;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -77,18 +77,18 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         var adminRole = new Role { Id = AdminRoleId, Name = "Admin", Level = 50, IsSystemProtected = true };
         var userRole = new Role { Id = UserRoleId, Name = "User", Level = 10, IsSystemProtected = true };
 
-        var permRead = new Permission { Id = Guid.NewGuid(), Code = "users.read", Module = "Users" };
-        var permCreate = new Permission { Id = Guid.NewGuid(), Code = "users.create", Module = "Users" };
-        var permUpdate = new Permission { Id = Guid.NewGuid(), Code = "users.update", Module = "Users" };
-        var permDeactivate = new Permission { Id = Guid.NewGuid(), Code = "users.deactivate", Module = "Users" };
-        var permDelete = new Permission { Id = Guid.NewGuid(), Code = "users.delete", Module = "Users" };
-        var permUnlock = new Permission { Id = Guid.NewGuid(), Code = "users.unlock", Module = "Users" };
-        var permForceLogout = new Permission { Id = Guid.NewGuid(), Code = "users.force-logout", Module = "Users" };
-        var permReset = new Permission { Id = Guid.NewGuid(), Code = "users.reset-password", Module = "Users" };
-        var permRolesManage = new Permission { Id = Guid.NewGuid(), Code = "roles.manage", Module = "Roles" };
-        var permRolesAssign = new Permission { Id = Guid.NewGuid(), Code = "roles.assign", Module = "Roles" };
-        var permAudit = new Permission { Id = Guid.NewGuid(), Code = "audit.read", Module = "Audit" };
-        var permImport = new Permission { Id = Guid.NewGuid(), Code = "users.import", Module = "Users" };
+        var permRead = new Permission { Id = 1, Code = "users.read", Module = "Users" };
+        var permCreate = new Permission { Id = 2, Code = "users.create", Module = "Users" };
+        var permUpdate = new Permission { Id = 3, Code = "users.update", Module = "Users" };
+        var permDeactivate = new Permission { Id = 4, Code = "users.deactivate", Module = "Users" };
+        var permDelete = new Permission { Id = 5, Code = "users.delete", Module = "Users" };
+        var permUnlock = new Permission { Id = 6, Code = "users.unlock", Module = "Users" };
+        var permForceLogout = new Permission { Id = 7, Code = "users.force-logout", Module = "Users" };
+        var permReset = new Permission { Id = 8, Code = "users.reset-password", Module = "Users" };
+        var permRolesManage = new Permission { Id = 9, Code = "roles.manage", Module = "Roles" };
+        var permRolesAssign = new Permission { Id = 10, Code = "roles.assign", Module = "Roles" };
+        var permAudit = new Permission { Id = 11, Code = "audit.read", Module = "Audit" };
+        var permImport = new Permission { Id = 12, Code = "users.import", Module = "Users" };
 
         db.Roles.AddRange(superAdminRole, adminRole, userRole);
         db.Permissions.AddRange(permRead, permCreate, permUpdate, permDeactivate, permDelete, permUnlock, permForceLogout, permReset, permRolesManage, permRolesAssign, permAudit, permImport);

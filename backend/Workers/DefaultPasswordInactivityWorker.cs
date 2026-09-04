@@ -99,7 +99,6 @@ public class DefaultPasswordInactivityWorker : BackgroundService
             // Create security audit log
             context.AuditLogs.Add(new AuditLog
             {
-                Id = Guid.NewGuid(),
                 Action = "User.AutoSuspended",
                 EntityType = "User",
                 EntityId = user.Id.ToString(),

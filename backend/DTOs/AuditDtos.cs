@@ -1,8 +1,8 @@
 namespace MEval.Api.DTOs;
 
 public record AuditLogDto(
-    Guid Id,
-    Guid? ActorUserId,
+    int Id,
+    int? ActorUserId,
     string? ActorUserName,
     string Action,
     string EntityType,
@@ -13,7 +13,7 @@ public record AuditLogDto(
 );
 
 public record AuditLogFilterParams(
-    Guid? ActorUserId,
+    int? ActorUserId,
     string? Action,
     string? EntityType,
     string? EntityId,

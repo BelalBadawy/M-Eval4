@@ -283,8 +283,8 @@
             "name": "batchId",
             "in": "query",
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
@@ -333,8 +333,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -356,8 +356,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -381,7 +381,7 @@
         "tags": [
           "Users"
         ],
-        "summary": "Soft-delete user account and revoke session",
+        "summary": "Soft-delete a user account",
         "operationId": "DeleteUser",
         "parameters": [
           {
@@ -389,8 +389,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -406,7 +406,7 @@
         "tags": [
           "Users"
         ],
-        "summary": "Deactivate user account and revoke active session",
+        "summary": "Deactivate a user account and revoke sessions",
         "operationId": "DeactivateUser",
         "parameters": [
           {
@@ -414,8 +414,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -431,7 +431,7 @@
         "tags": [
           "Users"
         ],
-        "summary": "Reactivate user account",
+        "summary": "Reactivate a user account",
         "operationId": "ReactivateUser",
         "parameters": [
           {
@@ -439,8 +439,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -456,7 +456,7 @@
         "tags": [
           "Users"
         ],
-        "summary": "Reset failed attempts and unlock account",
+        "summary": "Unlock locked-out user account",
         "operationId": "UnlockUser",
         "parameters": [
           {
@@ -464,8 +464,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -481,7 +481,7 @@
         "tags": [
           "Users"
         ],
-        "summary": "Revoke active session for target user",
+        "summary": "Admin force-logout all active sessions for a user",
         "operationId": "ForceLogoutUser",
         "parameters": [
           {
@@ -489,8 +489,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -514,8 +514,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -575,8 +575,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -598,8 +598,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -631,8 +631,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -656,8 +656,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -691,8 +691,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
@@ -700,8 +700,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -723,8 +723,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           },
           {
@@ -732,8 +732,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -849,8 +849,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -874,8 +874,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -899,8 +899,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -938,8 +938,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -963,8 +963,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -987,8 +987,8 @@
             "name": "actorUserId",
             "in": "query",
             "schema": {
-              "type": "string",
-              "format": "uuid",
+              "type": "integer",
+              "format": "int32",
               "default": null
             }
           },
@@ -1071,14 +1071,14 @@
         "type": "object",
         "properties": {
           "roleId": {
-            "type": "string",
-            "format": "uuid"
+            "type": "integer",
+            "format": "int32"
           },
           "userIds": {
             "type": "array",
             "items": {
-              "type": "string",
-              "format": "uuid"
+              "type": "integer",
+              "format": "int32"
             }
           }
         }

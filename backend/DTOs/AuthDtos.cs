@@ -3,7 +3,7 @@ namespace MEval.Api.DTOs;
 public record LoginRequest(string Email, string Password);
 
 public record UserSummaryDto(
-    Guid Id,
+    int Id,
     string FullName,
     string Email,
     bool MustChangePassword,
@@ -30,7 +30,7 @@ public record ChangePasswordRequest(
 );
 
 public record SessionResponse(
-    Guid UserId,
+    int UserId,
     string FullName,
     string Email,
     bool MustChangePassword,

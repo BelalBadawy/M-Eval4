@@ -4,7 +4,7 @@ namespace MEval.Api.Models;
 
 public class ImportBatch
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Id { get; set; }
 
     [Required]
     [MaxLength(255)]
@@ -23,7 +23,7 @@ public class ImportBatch
     public DuplicateStrategy DuplicateStrategy { get; set; } = DuplicateStrategy.Skip;
     public CommitPolicy CommitPolicy { get; set; } = CommitPolicy.PartialValidOnly;
 
-    public Guid CreatedByUserId { get; set; }
+    public int CreatedByUserId { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAtUtc { get; set; }
     public DateTime? CancelledAtUtc { get; set; }

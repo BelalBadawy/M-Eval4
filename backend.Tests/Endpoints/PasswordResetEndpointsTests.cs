@@ -87,7 +87,6 @@ public class PasswordResetEndpointsTests : IClassFixture<CustomWebApplicationFac
 
         db.PasswordResetTokens.Add(new PasswordResetToken
         {
-            Id = Guid.NewGuid(),
             UserId = _factory.ResetUserId,
             TokenHash = tokenHash,
             CreatedAtUtc = DateTime.UtcNow,

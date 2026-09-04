@@ -30,7 +30,7 @@ public class TokenServiceTests
 
         var user = new User
         {
-            Id = Guid.NewGuid(),
+            Id = 1,
             FullName = "Test User",
             Email = "test@meval.local",
             PasswordHash = "hashedPassword",
@@ -38,8 +38,8 @@ public class TokenServiceTests
             IsActive = true
         };
 
-        var role = new Role { Id = Guid.NewGuid(), Name = "User", Level = 10 };
-        var perm = new Permission { Id = Guid.NewGuid(), Code = "users.read", Module = "Users" };
+        var role = new Role { Id = 1, Name = "User", Level = 10 };
+        var perm = new Permission { Id = 1, Code = "users.read", Module = "Users" };
 
         context.Users.Add(user);
         context.Roles.Add(role);

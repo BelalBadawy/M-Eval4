@@ -115,7 +115,7 @@ public class UserEndpointsTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
-    public async Task UpdateProfileMe_ShouldWorkForNonAdmin_AndNotCollideWithIdGuidRoute()
+    public async Task UpdateProfileMe_ShouldWorkForNonAdmin_AndNotCollideWithIdIntRoute()
     {
         // Normal user (no admin permissions) calls GET /api/v1/users/me and PUT /api/v1/users/me
         var client = await CreateAuthenticatedClientAsync(_factory.NormalUserEmail, _factory.TestUserPassword, "10.0.10.7");

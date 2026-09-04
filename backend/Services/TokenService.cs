@@ -14,9 +14,9 @@ namespace MEval.Api.Services;
 public interface ITokenService
 {
     string CreateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string> permissions);
-    Task<(RefreshToken RefreshToken, string RawToken)> IssueRefreshTokenAsync(Guid userId, string ipAddress);
+    Task<(RefreshToken RefreshToken, string RawToken)> IssueRefreshTokenAsync(int userId, string ipAddress);
     Task<(bool Success, string? AccessToken, string? RawRefreshToken, string? ErrorReason)> RotateRefreshTokenAsync(string rawRefreshToken, string ipAddress);
-    Task<bool> RevokeActiveSessionAsync(Guid userId, string reason, string? ipAddress = null);
+    Task<bool> RevokeActiveSessionAsync(int userId, string reason, string? ipAddress = null);
     string HashToken(string token);
 }
 
@@ -74,7 +74,7 @@ public class TokenService : ITokenService
         return Convert.ToBase64String(hash);
     }
 
-    public async Task<(RefreshToken RefreshToken, string RawToken)> IssueRefreshTokenAsync(Guid userId, string ipAddress)
+    public async Task<(RefreshToken RefreshToken, string RawToken)> IssueRefreshTokenAsync(int userId, string ipAddress)
     {
         // 1. Single Active Session Per User: Revoke any existing active token
         var existingActiveTokens = await _context.RefreshTokens
@@ -97,7 +97,6 @@ public class TokenService : ITokenService
 
         var refreshToken = new RefreshToken
         {
-            Id = Guid.NewGuid(),
             UserId = userId,
             TokenHash = tokenHash,
             CreatedByIp = ipAddress,
@@ -195,7 +194,7 @@ public class TokenService : ITokenService
         return (true, newAccessToken, newRawRefreshToken, null);
     }
 
-    public async Task<bool> RevokeActiveSessionAsync(Guid userId, string reason, string? ipAddress = null)
+    public async Task<bool> RevokeActiveSessionAsync(int userId, string reason, string? ipAddress = null)
     {
         var activeTokens = await _context.RefreshTokens
             .Where(r => r.UserId == userId && r.RevokedAtUtc == null)

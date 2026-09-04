@@ -19,7 +19,7 @@ public static class UserEndpoints
             .AddEndpointFilter<FirstLoginGatewayFilter>();
 
         // 1. Self-Service Profile Routes (/api/v1/users/me)
-        // Disambiguated by route constraint from {id:guid}
+        // Disambiguated by route constraint from {id:int}
         group.MapGet("/me", async (
             IUserLifecycleService userService,
             HttpContext httpContext) =>
@@ -64,9 +64,9 @@ public static class UserEndpoints
                     return Results.Conflict(new { error = "EmailAlreadyExists", message = "A user with this email address already exists." });
                 }
 
-                if (error?.StartsWith("UserSoftDeleted") == true)
+                if (error != null && error.StartsWith("UserSoftDeleted"))
                 {
-                    return Results.BadRequest(new { error = "UserSoftDeleted", message = error });
+                    return Results.Conflict(new { error = "UserSoftDeleted", message = "A soft-deleted user with this email exists. Please reactivate or restore." });
                 }
 
                 return Results.BadRequest(new { error = error ?? "Failed", message = "Could not create user." });
@@ -83,7 +83,7 @@ public static class UserEndpoints
             string? role,
             string? status,
             UserSource? source,
-            Guid? batchId,
+            int? batchId,
             bool? stillOnDefaultPassword,
             int pageIndex,
             int pageSize,
@@ -107,7 +107,7 @@ public static class UserEndpoints
         .WithName("SearchUsers")
         .WithSummary("Search and filter users with pagination");
 
-        group.MapGet("/{id:guid}", async (Guid id, IUserLifecycleService userService) =>
+        group.MapGet("/{id:int}", async (int id, IUserLifecycleService userService) =>
         {
             var user = await userService.GetUserByIdAsync(id);
             return user == null
@@ -118,8 +118,8 @@ public static class UserEndpoints
         .WithName("GetUserById")
         .WithSummary("Get user details by ID");
 
-        group.MapPut("/{id:guid}", async (
-            Guid id,
+        group.MapPut("/{id:int}", async (
+            int id,
             UpdateUserRequest request,
             IUserLifecycleService userService,
             HttpContext httpContext) =>
@@ -139,8 +139,8 @@ public static class UserEndpoints
         .WithName("UpdateUser")
         .WithSummary("Update user profile info");
 
-        group.MapPost("/{id:guid}/deactivate", async (
-            Guid id,
+        group.MapPost("/{id:int}/deactivate", async (
+            int id,
             IUserLifecycleService userService,
             HttpContext httpContext) =>
         {
@@ -150,19 +150,27 @@ public static class UserEndpoints
             var (success, error) = await userService.DeactivateUserAsync(id, callerId.Value);
             if (!success)
             {
-                return error?.Contains("CannotDeactivate") == true
-                    ? Results.Json(new { error = "GuardViolation", message = error }, statusCode: StatusCodes.Status403Forbidden)
-                    : Results.BadRequest(new { error = error ?? "Failed", message = "Could not deactivate user." });
+                if (error != null && error.StartsWith("CannotDeactivateSelf"))
+                {
+                    return Results.Json(new { error = "CannotDeactivateSelf", message = "You cannot deactivate your own account." }, statusCode: StatusCodes.Status403Forbidden);
+                }
+
+                if (error != null && error.StartsWith("CannotDeactivateLastAdmin"))
+                {
+                    return Results.Json(new { error = "CannotDeactivateLastAdmin", message = "You cannot deactivate the last active administrator." }, statusCode: StatusCodes.Status403Forbidden);
+                }
+
+                return Results.NotFound(new { error = "UserNotFound", message = "User not found." });
             }
 
-            return Results.Ok(new { message = "User deactivated successfully." });
+            return Results.Ok(new { message = "User account deactivated successfully." });
         })
         .RequirePermission("users.deactivate")
         .WithName("DeactivateUser")
-        .WithSummary("Deactivate user account and revoke active session");
+        .WithSummary("Deactivate a user account and revoke sessions");
 
-        group.MapPost("/{id:guid}/reactivate", async (
-            Guid id,
+        group.MapPost("/{id:int}/reactivate", async (
+            int id,
             IUserLifecycleService userService,
             HttpContext httpContext) =>
         {
@@ -175,14 +183,14 @@ public static class UserEndpoints
                 return Results.NotFound(new { error = "UserNotFound", message = "User not found." });
             }
 
-            return Results.Ok(new { message = "User reactivated successfully." });
+            return Results.Ok(new { message = "User account reactivated successfully." });
         })
         .RequirePermission("users.deactivate")
         .WithName("ReactivateUser")
-        .WithSummary("Reactivate user account");
+        .WithSummary("Reactivate a user account");
 
-        group.MapPost("/{id:guid}/unlock", async (
-            Guid id,
+        group.MapPost("/{id:int}/unlock", async (
+            int id,
             IUserLifecycleService userService,
             HttpContext httpContext) =>
         {
@@ -195,29 +203,34 @@ public static class UserEndpoints
                 return Results.NotFound(new { error = "UserNotFound", message = "User not found." });
             }
 
-            return Results.Ok(new { message = "User unlocked successfully." });
+            return Results.Ok(new { message = "User account unlocked successfully." });
         })
         .RequirePermission("users.unlock")
         .WithName("UnlockUser")
-        .WithSummary("Reset failed attempts and unlock account");
+        .WithSummary("Unlock locked-out user account");
 
-        group.MapPost("/{id:guid}/force-logout", async (
-            Guid id,
+        group.MapPost("/{id:int}/force-logout", async (
+            int id,
             IUserLifecycleService userService,
             HttpContext httpContext) =>
         {
             var callerId = GetUserId(httpContext.User);
             if (callerId == null) return Results.Unauthorized();
 
-            await userService.ForceLogoutUserAsync(id, callerId.Value);
-            return Results.Ok(new { message = "User session has been revoked." });
+            var (success, error) = await userService.ForceLogoutUserAsync(id, callerId.Value);
+            if (!success)
+            {
+                return Results.NotFound(new { error = "UserNotFound", message = "User not found." });
+            }
+
+            return Results.Ok(new { message = "User active sessions have been revoked." });
         })
         .RequirePermission("users.force-logout")
         .WithName("ForceLogoutUser")
-        .WithSummary("Revoke active session for target user");
+        .WithSummary("Admin force-logout all active sessions for a user");
 
-        group.MapDelete("/{id:guid}", async (
-            Guid id,
+        group.MapDelete("/{id:int}", async (
+            int id,
             IUserLifecycleService userService,
             HttpContext httpContext) =>
         {
@@ -227,20 +240,28 @@ public static class UserEndpoints
             var (success, error) = await userService.SoftDeleteUserAsync(id, callerId.Value);
             if (!success)
             {
-                return error?.Contains("CannotDeactivate") == true
-                    ? Results.Json(new { error = "GuardViolation", message = error }, statusCode: StatusCodes.Status403Forbidden)
-                    : Results.BadRequest(new { error = error ?? "Failed", message = "Could not delete user." });
+                if (error != null && error.StartsWith("CannotDeactivateSelf"))
+                {
+                    return Results.Json(new { error = "CannotDeleteSelf", message = "You cannot delete your own account." }, statusCode: StatusCodes.Status403Forbidden);
+                }
+
+                if (error != null && error.StartsWith("CannotDeactivateLastAdmin"))
+                {
+                    return Results.Json(new { error = "CannotDeleteLastAdmin", message = "You cannot delete the last active administrator." }, statusCode: StatusCodes.Status403Forbidden);
+                }
+
+                return Results.NotFound(new { error = "UserNotFound", message = "User not found." });
             }
 
-            return Results.Ok(new { message = "User deleted successfully." });
+            return Results.Ok(new { message = "User soft-deleted successfully." });
         })
         .RequirePermission("users.delete")
         .WithName("DeleteUser")
-        .WithSummary("Soft-delete user account and revoke session");
+        .WithSummary("Soft-delete a user account");
 
         // Admin force-reset-password
-        group.MapPost("/{id:guid}/force-reset-password", async (
-            Guid id,
+        group.MapPost("/{id:int}/force-reset-password", async (
+            int id,
             IPasswordResetService passwordResetService,
             HttpContext httpContext) =>
         {
@@ -271,11 +292,11 @@ public static class UserEndpoints
         return app;
     }
 
-    private static Guid? GetUserId(ClaimsPrincipal user)
+    private static int? GetUserId(ClaimsPrincipal user)
     {
         var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
                       ?? user.FindFirst("sub")?.Value;
 
-        return Guid.TryParse(idClaim, out var guid) ? guid : null;
+        return int.TryParse(idClaim, out var id) ? id : null;
     }
 }
