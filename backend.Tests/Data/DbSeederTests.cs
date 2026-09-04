@@ -43,18 +43,22 @@ public class DbSeederTests
 
         // Verify Permissions
         var permissions = await context.Permissions.ToListAsync();
-        permissions.Should().HaveCount(12);
+        permissions.Should().HaveCount(16);
         permissions.Should().Contain(p => p.Code == "users.create");
         permissions.Should().Contain(p => p.Code == "users.import");
         permissions.Should().Contain(p => p.Code == "roles.manage");
         permissions.Should().Contain(p => p.Code == "audit.read");
+        permissions.Should().Contain(p => p.Code == "org.read");
+        permissions.Should().Contain(p => p.Code == "org.import");
+        permissions.Should().Contain(p => p.Code == "employees.manage-eligibility");
+        permissions.Should().Contain(p => p.Code == "employees.link-user");
 
         // Verify Super Admin has all permissions
         var superAdmin = roles.First(r => r.Name == "Super Admin");
         var superAdminPermissions = await context.RolePermissions
             .Where(rp => rp.RoleId == superAdmin.Id)
             .ToListAsync();
-        superAdminPermissions.Should().HaveCount(12);
+        superAdminPermissions.Should().HaveCount(16);
 
         // Verify Initial Admin User
         var adminUser = await context.Users.Include(u => u.UserRoles).FirstOrDefaultAsync(u => u.Email == "admin@meval.local");
@@ -80,7 +84,7 @@ public class DbSeederTests
         roles.Should().HaveCount(4);
 
         var permissions = await context.Permissions.ToListAsync();
-        permissions.Should().HaveCount(12);
+        permissions.Should().HaveCount(16);
 
         var adminCount = await context.Users.CountAsync(u => u.Email == "admin@meval.local");
         adminCount.Should().Be(1);

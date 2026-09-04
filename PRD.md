@@ -178,3 +178,65 @@ Provide an enterprise internal authentication, user provisioning, role-based acc
 
 #### Audit Logging
 - **AUTH-041** All authentication events, provisioning actions, role changes, status updates, and import jobs shall be recorded in the `AuditLog` table. Audit logs shall be immutable: updates and deletions shall be blocked at the database context level. Querying audit logs (`GET /api/v1/audit/logs`) shall be restricted to users possessing `audit.read`.
+
+---
+
+# 7. Module 2 — Organization & Employee Hierarchy
+
+### Purpose
+Maintain the organizational structure (Companies, Departments, Sections, Positions with N-Level) and employee reporting hierarchy that underpins evaluation eligibility (Module 3), cycle group generation & evaluator routing (Module 5), and historical membership snapshots (Module 6).
+
+### System Permissions
+- **Organization Read:** `org.read`
+- **HR Master Import:** `org.import`
+- **Eligibility Override:** `employees.manage-eligibility`
+- **User Account Binding:** `employees.link-user`
+
+### Requirements
+
+#### Organizational Structure & Lookups
+- **ORG-001** The system shall store organizational lookups (`Companies`, `Departments`, `Sections`, `Positions`) using external integer IDs as primary keys without database IDENTITY generation (`.ValueGeneratedNever()`).
+- **ORG-002** Organizational lookups shall have zero manual CRUD endpoints; the sole writer for lookups shall be the HR synchronization import process.
+- **ORG-003** Departments shall belong to exactly one Company; Sections shall belong to exactly one Department. Composite unique constraints `(DepartmentId, CompanyId)` and `(SectionId, DepartmentId)` shall be enforced in the database.
+- **ORG-004** Positions shall define an integer `NLevel >= 1`, where Level 1 represents the highest organizational tier (e.g., CEO/General Manager) and higher values represent lower hierarchy tiers.
+
+#### Employee Master & Placement Matrix
+- **ORG-005** Employees shall use the external HR `EmployeeId` as the primary key (`.ValueGeneratedNever()`) and `EmployeeNumber` as an immutable unique business key. An existing `EmployeeId` matched with a different `EmployeeNumber` shall be rejected as a row error.
+- **ORG-006** An employee's organizational placement shall be enforced via composite foreign keys: `(DepartmentId, CompanyId)` referencing `Departments` and `(SectionId, DepartmentId)` referencing `Sections`, configured with `DeleteBehavior.Restrict`.
+- **ORG-007** The system shall enforce via check constraint `CK_Empl_SectionNeedsDept` that `SectionId` cannot be assigned if `DepartmentId` is NULL.
+- **ORG-008** `EmploymentStatus` shall support `1 = Active`, `2 = Resigned`, and `3 = Terminated`. Database check constraints shall enforce:
+  - `CK_Empl_StatusDates`: `ResignationDate` is NULL for Active status and NOT NULL for Resigned or Terminated status.
+  - `CK_Empl_ResignationAfterHire`: `ResignationDate IS NULL OR ResignationDate >= HireDate`.
+
+#### Manager Hierarchy & Cycle Detection
+- **ORG-009** Each employee may reference a `DirectManagerId` pointing to `Employees(EmployeeId)` with `DeleteBehavior.Restrict`. Top-level executives (`NLevel = 1`) are expected to have `DirectManagerId = null`.
+- **ORG-010** The system shall detect and reject cyclical manager relationships of any depth (e.g., A reports to B, B reports to C, C reports to A) across the overlaid graph (`file rows ∪ existing DB employees`).
+- **ORG-011** A direct manager must be an active employee (`EmploymentStatus = 1` and `IsActive = 1`) within the same company.
+
+#### Dual Identity & Local Column Ownership
+- **ORG-012** The system shall link an employee to an application login account via `UserId INT NULL REFERENCES Users(Id)` (`DeleteBehavior.Restrict`), enforced by a filtered unique index `UX_Employees_UserId WHERE UserId IS NOT NULL`.
+- **ORG-013** The fields `IsEvaluationEligible`, `UserId`, and `IsActive` shall be locally managed: HR bulk imports shall never overwrite these fields during upserts.
+- **ORG-014** Authorized administrators (`employees.manage-eligibility`) may toggle `IsEvaluationEligible` for an employee, writing an audit log entry (`EligibilityChanged`).
+- **ORG-015** Authorized administrators (`employees.link-user`) may link or unlink an employee to an existing `Users` account. Target user must exist and be active (`IsActive = true`); double-linking shall return `409 Conflict`. Audit entries (`UserLinked`, `UserUnlinked`) shall be recorded.
+
+#### Hierarchy Querying & Anomalies
+- **ORG-016** Querying the organizational hierarchy tree (`GET /api/v1/org/structure`) and companies list (`GET /api/v1/org/companies`) shall return active-only companies, active departments, and active sections.
+- **ORG-017** Querying an employee's manager chain (`GET /api/v1/employees/{id:int}/manager-chain`) shall traverse upward from the employee to the root manager (capped at 100 hops), returning each manager's `EmployeeId`, `FullName`, `PositionId`, `PositionName`, and `NLevel`.
+- **ORG-018** Querying an employee's direct reports (`GET /api/v1/employees/{id:int}/direct-reports`) shall return all active employees having `DirectManagerId` equal to the specified ID.
+- **ORG-019** An anomaly query (`GET /api/v1/employees/anomalies` and `GET /api/v1/employees/orphans`) shall perform comprehensive hierarchy integrity validation for Module 5's group generation gate, identifying:
+  - **Orphans:** active employees missing a direct manager who are not top-tier executives (`DirectManagerId == null && NLevel > 1`).
+  - **Root-with-Manager Anomalies:** top-tier executives who have an assigned direct manager (`DirectManagerId != null && NLevel == 1`), flagging suspicious root hierarchy corruption.
+  - **Manager Status/Company Mismatches:** active employees whose assigned manager is inactive, resigned, or in a different company.
+- **ORG-020** Employee search (`GET /api/v1/employees`) shall support pagination, full-text search, and filtering by `companyId`, `departmentId`, `sectionId`, `positionId`, `managerId`, `nLevel`, `status`, `isEvaluationEligible`, and `hasLinkedAccount`.
+
+#### HR Master Synchronization & Offboarding Cascade
+- **ORG-021** HR organizational import dry-run (`POST /api/v1/org/imports/dry-run`) shall validate file format, structural placement matrix integrity, manager links, and detect cycles, returning summary metrics and row error reports without modifying database state.
+- **ORG-022** HR organizational import execution (`POST /api/v1/org/imports/execute`) shall execute synchronously with the uploaded file within a single transaction (`CommitPolicy = AllOrNothing`), enforcing a single active import lock (`409 Conflict`) shared between dry-run and execute. Duplicate strategies are evaluated against:
+  - `EmployeeId` (primary upsert join key).
+  - `EmployeeNumber` (must match existing ID; cross-ID duplicate numbers rejected as row error).
+  - `Email` (pre-validated against active DB users to prevent constraint violation).
+  Lookups and employees preserve local columns, leave absent employees untouched, and accept NLevel 1 employees with a manager (flagging them via `/anomalies`).
+- **ORG-023** When an employee's status changes to Resigned or Terminated, active direct reports are flagged via the hierarchy anomaly query (manager-mismatch category) for managerial reassignment.
+- **ORG-024** Setting an employee `IsActive = false` acts as a local data-correction flag, excluding the employee from active queries, hierarchy, and evaluation eligibility without deactivating their linked `User` account.
+- **ORG-025** All organizational import success (`OrgImportExecuted`), import failure (`OrgImportFailed`), eligibility modification (`EligibilityChanged`), user linkage (`UserLinked`, `UserUnlinked`), and employee offboarding (`EmployeeOffboarded`) events shall be recorded in `AuditLogs`.
+- **ORG-026** When an employee's `EmploymentStatus` changes to Resigned (2) or Terminated (3) via import, the system shall deactivate the linked user account (`IsActive = false`), revoke its active session with reason `EmployeeOffboarded`, and write an audit entry (`EmployeeOffboarded`).

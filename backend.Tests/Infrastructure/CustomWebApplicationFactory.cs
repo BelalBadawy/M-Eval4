@@ -89,9 +89,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         var permRolesAssign = new Permission { Id = 10, Code = "roles.assign", Module = "Roles" };
         var permAudit = new Permission { Id = 11, Code = "audit.read", Module = "Audit" };
         var permImport = new Permission { Id = 12, Code = "users.import", Module = "Users" };
+        var permOrgRead = new Permission { Id = 13, Code = "org.read", Module = "Organization" };
+        var permOrgImport = new Permission { Id = 14, Code = "org.import", Module = "Organization" };
+        var permManageElig = new Permission { Id = 15, Code = "employees.manage-eligibility", Module = "Employees" };
+        var permLinkUser = new Permission { Id = 16, Code = "employees.link-user", Module = "Employees" };
 
         db.Roles.AddRange(superAdminRole, adminRole, userRole);
-        db.Permissions.AddRange(permRead, permCreate, permUpdate, permDeactivate, permDelete, permUnlock, permForceLogout, permReset, permRolesManage, permRolesAssign, permAudit, permImport);
+        db.Permissions.AddRange(permRead, permCreate, permUpdate, permDeactivate, permDelete, permUnlock, permForceLogout, permReset, permRolesManage, permRolesAssign, permAudit, permImport, permOrgRead, permOrgImport, permManageElig, permLinkUser);
 
         db.RolePermissions.Add(new RolePermission { RoleId = userRole.Id, PermissionId = permRead.Id });
 
@@ -107,6 +111,16 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = permRolesAssign.Id });
         db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = permAudit.Id });
         db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = permImport.Id });
+        db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = permOrgRead.Id });
+        db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = permOrgImport.Id });
+        db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = permManageElig.Id });
+        db.RolePermissions.Add(new RolePermission { RoleId = adminRole.Id, PermissionId = permLinkUser.Id });
+
+        // Super Admin gets all permissions
+        foreach (var perm in new[] { permRead, permCreate, permUpdate, permDeactivate, permDelete, permUnlock, permForceLogout, permReset, permRolesManage, permRolesAssign, permAudit, permImport, permOrgRead, permOrgImport, permManageElig, permLinkUser })
+        {
+            db.RolePermissions.Add(new RolePermission { RoleId = superAdminRole.Id, PermissionId = perm.Id });
+        }
 
         var defaultHash = BCrypt.Net.BCrypt.HashPassword(TestUserPassword, 11);
 
