@@ -38,9 +38,7 @@ VALIDATE gates on that distinction: no task may start on a decision marked block
 
 ### Non-blocking
 
-| Decision | Module | Resolution | Why non-blocking |
-| Password hashing algorithm | 1 (AUTH) | Argon2id with bcrypt fallback | Industry standard password hashing; configurable in settings |
-| Token transport | 1 (AUTH) | Bearer JWT in Authorization header | Standard REST/OpenAPI client transport compatible with `openapi-fetch` |
+*(None)*
 
 ## Architecture decisions
 

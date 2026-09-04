@@ -95,8 +95,4 @@ of the form `<PREFIX>-<NNN>`.
 | 11 | Execution & Group Submission | `EXEC` |
 | 12 | Approval Workflow | `APPR` |
 
-Modules 1 and 12 are the RBAC-load-bearing modules: Module 1 defines the permission system,
-Module 12 is where the Approver and Evaluation Administrator roles are exercised in routing.
-Security enforcement is Module 1; there is no separate security module.
-
----
+Detailed functional requirements, user roles, and business rules for each module will be authored in dedicated sections below as specifications are drafted.

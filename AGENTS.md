@@ -17,7 +17,7 @@ That content is this file.
 
 ## Layout
 
-Scaffolded 2026-09-02. Create paths here rather than inventing new ones.
+Greenfield project starting from scratch. Target layout paths are defined here rather than inventing new ones.
 
 - `backend/` — ASP.NET Core Minimal API application (Endpoints, Services, Data/DbContext, Models, Migrations); services hold business rules
 - `frontend/src/` — React app
@@ -47,7 +47,7 @@ Rules are edited **here and nowhere else**. Harness stubs (like `CLAUDE.md`) imp
 
 ## Spec
 
-- `PRD.md` is the authoritative requirements document: 12 numbered functional modules and 5 user roles (System Administrator, Evaluation Administrator, Evaluator, Approver, Employee Viewer). Consult it for scope, role permissions, and module behavior.
+- `PRD.md` is the authoritative requirements document: 12 numbered functional modules. Consult it for scope, user roles, permissions, and module behavior as they are specified.
 
 ## Rules
 
@@ -57,7 +57,7 @@ Rules are edited **here and nowhere else**. Harness stubs (like `CLAUDE.md`) imp
 - Do not modify unrelated modules or files. Three companions to a change are expected, not unrelated: the regenerated contract and client (`## API contract`), `PROGRESS.md` (`## Progress`), and this file when a rule changes.
 - Do not introduce a new dependency without justification. Name it and the reason in the plan; if it shapes architecture, it needs an ADR.
 - `PRD.md` and the API contract are the only sources of *product behavior* — derive behavior from them, never from assumption. This file governs engineering practice, not behavior.
-- Security-sensitive changes — authentication, authorization and role checks (PRD Module 1, which defines the permission system, and Module 12, where the Approver and Evaluation Administrator roles are exercised; there is no separate security module), secret or password handling, raw SQL, file upload, or any path that could expose another user's evaluation data — require, beyond the normal checks: a test for the deny case and not only the allow case, and a `/security-review` pass over the diff.
+- Security-sensitive changes — authentication, authorization and role checks (which define the permission system and role routing), secret or password handling, raw SQL, file upload, or any path that could expose another user's evaluation data — require, beyond the normal checks: a test for the deny case and not only the allow case, and a `/security-review` pass over the diff.
 - A defect that recurs, or that a rule here would have prevented, feeds a rule back into this file — not just a one-off fix. There is no production environment; this applies in every environment.
 
 ## API contract
