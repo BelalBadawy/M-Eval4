@@ -4,7 +4,7 @@ namespace MEval.Api.Models;
 
 public class User
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Id { get; set; }
 
     [Required]
     [MaxLength(150)]
@@ -34,7 +34,7 @@ public class User
 
     public UserSource Source { get; set; } = UserSource.Manual;
 
-    public Guid? ImportBatchId { get; set; }
+    public int? ImportBatchId { get; set; }
 
     public bool IsRolledBack { get; set; } = false;
 

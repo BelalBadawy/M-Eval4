@@ -9,16 +9,16 @@ namespace MEval.Api.Services;
 
 public interface IUserLifecycleService
 {
-    Task<(bool Success, UserDetailDto? User, string? ErrorReason)> CreateUserAsync(CreateUserRequest request, Guid callerUserId);
+    Task<(bool Success, UserDetailDto? User, string? ErrorReason)> CreateUserAsync(CreateUserRequest request, int callerUserId);
     Task<PaginatedListDto<UserDetailDto>> SearchUsersAsync(UserFilterParams filters);
-    Task<UserDetailDto?> GetUserByIdAsync(Guid id);
-    Task<(bool Success, string? ErrorReason)> UpdateUserAsync(Guid id, UpdateUserRequest request, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> UpdateProfileMeAsync(Guid currentUserId, UpdateProfileMeRequest request);
-    Task<(bool Success, string? ErrorReason)> DeactivateUserAsync(Guid id, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> ReactivateUserAsync(Guid id, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> UnlockUserAsync(Guid id, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> ForceLogoutUserAsync(Guid id, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> SoftDeleteUserAsync(Guid id, Guid callerUserId);
+    Task<UserDetailDto?> GetUserByIdAsync(int id);
+    Task<(bool Success, string? ErrorReason)> UpdateUserAsync(int id, UpdateUserRequest request, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> UpdateProfileMeAsync(int currentUserId, UpdateProfileMeRequest request);
+    Task<(bool Success, string? ErrorReason)> DeactivateUserAsync(int id, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> ReactivateUserAsync(int id, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> UnlockUserAsync(int id, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> ForceLogoutUserAsync(int id, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> SoftDeleteUserAsync(int id, int callerUserId);
 }
 
 public class UserLifecycleService : IUserLifecycleService
@@ -40,7 +40,7 @@ public class UserLifecycleService : IUserLifecycleService
         _securitySettings = securitySettings.Value;
     }
 
-    public async Task<(bool Success, UserDetailDto? User, string? ErrorReason)> CreateUserAsync(CreateUserRequest request, Guid callerUserId)
+    public async Task<(bool Success, UserDetailDto? User, string? ErrorReason)> CreateUserAsync(CreateUserRequest request, int callerUserId)
     {
         var email = request.Email?.Trim().ToLowerInvariant() ?? string.Empty;
 
@@ -64,7 +64,6 @@ public class UserLifecycleService : IUserLifecycleService
 
         var user = new User
         {
-            Id = Guid.NewGuid(),
             FullName = request.FullName.Trim(),
             Email = email,
             PhoneNumber = request.PhoneNumber,
@@ -81,10 +80,10 @@ public class UserLifecycleService : IUserLifecycleService
         var defaultRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "User");
         if (defaultRole != null)
         {
-            _context.UserRoles.Add(new UserRole
+            user.UserRoles.Add(new UserRole
             {
-                UserId = user.Id,
-                RoleId = defaultRole.Id,
+                User = user,
+                Role = defaultRole,
                 AssignedAtUtc = DateTime.UtcNow,
                 AssignedByUserId = callerUserId
             });
@@ -185,7 +184,7 @@ public class UserLifecycleService : IUserLifecycleService
         return new PaginatedListDto<UserDetailDto>(items, totalCount, pageIndex, pageSize, totalPages);
     }
 
-    public async Task<UserDetailDto?> GetUserByIdAsync(Guid id)
+    public async Task<UserDetailDto?> GetUserByIdAsync(int id)
     {
         var user = await _context.Users
             .AsNoTracking()
@@ -218,7 +217,7 @@ public class UserLifecycleService : IUserLifecycleService
         );
     }
 
-    public async Task<(bool Success, string? ErrorReason)> UpdateUserAsync(Guid id, UpdateUserRequest request, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> UpdateUserAsync(int id, UpdateUserRequest request, int callerUserId)
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null)
@@ -234,7 +233,7 @@ public class UserLifecycleService : IUserLifecycleService
         return (true, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> UpdateProfileMeAsync(Guid currentUserId, UpdateProfileMeRequest request)
+    public async Task<(bool Success, string? ErrorReason)> UpdateProfileMeAsync(int currentUserId, UpdateProfileMeRequest request)
     {
         var user = await _context.Users.FindAsync(currentUserId);
         if (user == null)
@@ -249,7 +248,7 @@ public class UserLifecycleService : IUserLifecycleService
         return (true, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> DeactivateUserAsync(Guid id, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> DeactivateUserAsync(int id, int callerUserId)
     {
         if (id == callerUserId)
         {
@@ -291,7 +290,7 @@ public class UserLifecycleService : IUserLifecycleService
         return (true, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> ReactivateUserAsync(Guid id, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> ReactivateUserAsync(int id, int callerUserId)
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null)
@@ -304,7 +303,7 @@ public class UserLifecycleService : IUserLifecycleService
         return (true, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> UnlockUserAsync(Guid id, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> UnlockUserAsync(int id, int callerUserId)
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null)
@@ -318,13 +317,13 @@ public class UserLifecycleService : IUserLifecycleService
         return (true, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> ForceLogoutUserAsync(Guid id, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> ForceLogoutUserAsync(int id, int callerUserId)
     {
         var revoked = await _tokenService.RevokeActiveSessionAsync(id, RevokeReasons.AdminForceLogout);
         return (true, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> SoftDeleteUserAsync(Guid id, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> SoftDeleteUserAsync(int id, int callerUserId)
     {
         if (id == callerUserId)
         {

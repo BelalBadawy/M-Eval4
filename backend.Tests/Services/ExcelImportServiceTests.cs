@@ -85,7 +85,7 @@ public class ExcelImportServiceTests
         workbook.SaveAs(ms);
         ms.Position = 0;
 
-        var callerId = Guid.NewGuid();
+        var callerId = 99;
         var (success, result, error) = await service.DryRunImportAsync(
             ms, "forbidden.xlsx", ms.Length, DuplicateStrategy.Skip, CommitPolicy.PartialValidOnly, callerId);
 
@@ -114,7 +114,7 @@ public class ExcelImportServiceTests
         ms.Position = 0;
 
         var (success, _, error) = await service.DryRunImportAsync(
-            ms, "toolarge.xlsx", ms.Length, DuplicateStrategy.Skip, CommitPolicy.PartialValidOnly, Guid.NewGuid());
+            ms, "toolarge.xlsx", ms.Length, DuplicateStrategy.Skip, CommitPolicy.PartialValidOnly, 99);
 
         success.Should().BeFalse();
         error.Should().Contain("RowLimitExceeded");
@@ -128,7 +128,6 @@ public class ExcelImportServiceTests
         // Seed existing DB user
         var existingUser = new User
         {
-            Id = Guid.NewGuid(),
             FullName = "Existing User",
             Email = "existing@meval.local",
             PasswordHash = "hash",
@@ -162,7 +161,7 @@ public class ExcelImportServiceTests
         workbook.SaveAs(ms);
         ms.Position = 0;
 
-        var callerId = Guid.NewGuid();
+        var callerId = 99;
         var (success, result, error) = await service.DryRunImportAsync(
             ms, "batch.xlsx", ms.Length, DuplicateStrategy.Skip, CommitPolicy.PartialValidOnly, callerId);
 

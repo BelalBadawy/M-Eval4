@@ -119,7 +119,7 @@ public class RoleEndpointsTests : IClassFixture<CustomWebApplicationFactory>
 
         // Admin (Level 50) assigns role (Level 35 < 50) to TargetUser1 and TargetUser2 in bulk
         var adminClient = await CreateAuthenticatedClientAsync(_factory.AdminUserEmail, _factory.TestUserPassword, "10.0.9.7");
-        var bulkRequest = new BulkAssignRoleRequest(role!.Id, new List<Guid> { _factory.TargetUser1Id, _factory.TargetUser2Id });
+        var bulkRequest = new BulkAssignRoleRequest(role!.Id, new List<int> { _factory.TargetUser1Id, _factory.TargetUser2Id });
 
         var bulkResponse = await adminClient.PostAsJsonAsync("/api/v1/users/bulk-assign-role", bulkRequest);
 

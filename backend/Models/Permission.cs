@@ -4,7 +4,7 @@ namespace MEval.Api.Models;
 
 public class Permission
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Id { get; set; }
 
     [Required]
     [MaxLength(100)]

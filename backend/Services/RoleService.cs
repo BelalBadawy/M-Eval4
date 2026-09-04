@@ -8,15 +8,15 @@ namespace MEval.Api.Services;
 public interface IRoleService
 {
     Task<List<RoleDto>> GetRolesAsync();
-    Task<RoleDto?> GetRoleByIdAsync(Guid id);
-    Task<(bool Success, RoleDto? Role, string? ErrorReason)> CreateRoleAsync(CreateRoleRequest request, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> UpdateRoleAsync(Guid id, UpdateRoleRequest request, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> DeleteRoleAsync(Guid id, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> UpdateRolePermissionsAsync(Guid id, List<string> permissionCodes, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> AssignRoleAsync(Guid userId, Guid roleId, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> RemoveRoleAsync(Guid userId, Guid roleId, Guid callerUserId);
-    Task<(bool Success, BulkAssignRoleResponse? Response, string? ErrorReason)> BulkAssignRoleAsync(BulkAssignRoleRequest request, Guid callerUserId);
-    Task<int> GetCallerMaxLevelAsync(Guid callerUserId);
+    Task<RoleDto?> GetRoleByIdAsync(int id);
+    Task<(bool Success, RoleDto? Role, string? ErrorReason)> CreateRoleAsync(CreateRoleRequest request, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> UpdateRoleAsync(int id, UpdateRoleRequest request, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> DeleteRoleAsync(int id, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> UpdateRolePermissionsAsync(int id, List<string> permissionCodes, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> AssignRoleAsync(int userId, int roleId, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> RemoveRoleAsync(int userId, int roleId, int callerUserId);
+    Task<(bool Success, BulkAssignRoleResponse? Response, string? ErrorReason)> BulkAssignRoleAsync(BulkAssignRoleRequest request, int callerUserId);
+    Task<int> GetCallerMaxLevelAsync(int callerUserId);
 }
 
 public class RoleService : IRoleService
@@ -30,7 +30,7 @@ public class RoleService : IRoleService
         _tokenService = tokenService;
     }
 
-    public async Task<int> GetCallerMaxLevelAsync(Guid callerUserId)
+    public async Task<int> GetCallerMaxLevelAsync(int callerUserId)
     {
         var levels = await _context.UserRoles
             .Where(ur => ur.UserId == callerUserId)
@@ -57,7 +57,7 @@ public class RoleService : IRoleService
             .ToListAsync();
     }
 
-    public async Task<RoleDto?> GetRoleByIdAsync(Guid id)
+    public async Task<RoleDto?> GetRoleByIdAsync(int id)
     {
         var role = await _context.Roles
             .AsNoTracking()
@@ -80,7 +80,7 @@ public class RoleService : IRoleService
         );
     }
 
-    public async Task<(bool Success, RoleDto? Role, string? ErrorReason)> CreateRoleAsync(CreateRoleRequest request, Guid callerUserId)
+    public async Task<(bool Success, RoleDto? Role, string? ErrorReason)> CreateRoleAsync(CreateRoleRequest request, int callerUserId)
     {
         var callerLevel = await GetCallerMaxLevelAsync(callerUserId);
         if (request.Level >= callerLevel)
@@ -95,7 +95,6 @@ public class RoleService : IRoleService
 
         var role = new Role
         {
-            Id = Guid.NewGuid(),
             Name = request.Name.Trim(),
             Description = request.Description ?? string.Empty,
             Level = request.Level,
@@ -114,8 +113,8 @@ public class RoleService : IRoleService
             {
                 _context.RolePermissions.Add(new RolePermission
                 {
-                    RoleId = role.Id,
-                    PermissionId = perm.Id
+                    Role = role,
+                    Permission = perm
                 });
             }
         }
@@ -126,7 +125,7 @@ public class RoleService : IRoleService
         return (true, dto, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> UpdateRoleAsync(Guid id, UpdateRoleRequest request, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> UpdateRoleAsync(int id, UpdateRoleRequest request, int callerUserId)
     {
         var role = await _context.Roles.FindAsync(id);
         if (role == null)
@@ -164,7 +163,7 @@ public class RoleService : IRoleService
         return (true, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> DeleteRoleAsync(Guid id, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> DeleteRoleAsync(int id, int callerUserId)
     {
         var role = await _context.Roles.FindAsync(id);
         if (role == null)
@@ -194,7 +193,7 @@ public class RoleService : IRoleService
         return (true, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> UpdateRolePermissionsAsync(Guid id, List<string> permissionCodes, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> UpdateRolePermissionsAsync(int id, List<string> permissionCodes, int callerUserId)
     {
         var role = await _context.Roles
             .Include(r => r.RolePermissions)
@@ -245,7 +244,7 @@ public class RoleService : IRoleService
         return (true, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> AssignRoleAsync(Guid userId, Guid roleId, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> AssignRoleAsync(int userId, int roleId, int callerUserId)
     {
         var role = await _context.Roles.FindAsync(roleId);
         if (role == null)
@@ -285,7 +284,7 @@ public class RoleService : IRoleService
         return (true, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> RemoveRoleAsync(Guid userId, Guid roleId, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> RemoveRoleAsync(int userId, int roleId, int callerUserId)
     {
         var role = await _context.Roles.FindAsync(roleId);
         if (role == null)
@@ -312,7 +311,7 @@ public class RoleService : IRoleService
         return (true, null);
     }
 
-    public async Task<(bool Success, BulkAssignRoleResponse? Response, string? ErrorReason)> BulkAssignRoleAsync(BulkAssignRoleRequest request, Guid callerUserId)
+    public async Task<(bool Success, BulkAssignRoleResponse? Response, string? ErrorReason)> BulkAssignRoleAsync(BulkAssignRoleRequest request, int callerUserId)
     {
         var role = await _context.Roles.FindAsync(request.RoleId);
         if (role == null)

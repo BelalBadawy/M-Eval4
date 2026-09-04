@@ -8,7 +8,7 @@ namespace MEval.Api.Services;
 
 public interface IAuditService
 {
-    Task LogAsync(Guid? actorUserId, string action, string entityType, string? entityId, object? details, string? ipAddress);
+    Task LogAsync(int? actorUserId, string action, string entityType, string? entityId, object? details, string? ipAddress);
     Task<PaginatedListDto<AuditLogDto>> GetAuditLogsAsync(AuditLogFilterParams filters);
 }
 
@@ -21,13 +21,12 @@ public class AuditService : IAuditService
         _context = context;
     }
 
-    public async Task LogAsync(Guid? actorUserId, string action, string entityType, string? entityId, object? details, string? ipAddress)
+    public async Task LogAsync(int? actorUserId, string action, string entityType, string? entityId, object? details, string? ipAddress)
     {
         var detailsJson = details != null ? JsonSerializer.Serialize(details) : string.Empty;
 
         var auditLog = new AuditLog
         {
-            Id = Guid.NewGuid(),
             ActorUserId = actorUserId,
             Action = action,
             EntityType = entityType,

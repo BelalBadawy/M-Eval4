@@ -4,9 +4,9 @@ namespace MEval.Api.Models;
 
 public class PasswordResetToken
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Id { get; set; }
 
-    public Guid UserId { get; set; }
+    public int UserId { get; set; }
 
     [Required]
     [MaxLength(255)]

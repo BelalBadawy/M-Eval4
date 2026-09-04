@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MEval.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260904185412_InitialAuthSchema")]
-    partial class InitialAuthSchema
+    [Migration("20260904203426_InitialAuthSchemaIntIds")]
+    partial class InitialAuthSchemaIntIds
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,17 +27,19 @@ namespace MEval.Api.Migrations
 
             modelBuilder.Entity("MEval.Api.Models.AuditLog", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Action")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<Guid?>("ActorUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Details")
                         .IsRequired()
@@ -72,9 +74,11 @@ namespace MEval.Api.Migrations
 
             modelBuilder.Entity("MEval.Api.Models.ImportBatch", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime?>("CancelledAtUtc")
                         .HasColumnType("datetime2");
@@ -88,8 +92,8 @@ namespace MEval.Api.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("CreatedByUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
 
                     b.Property<int>("CreatedRows")
                         .HasColumnType("int");
@@ -132,12 +136,14 @@ namespace MEval.Api.Migrations
 
             modelBuilder.Entity("MEval.Api.Models.ImportBatchRow", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("BatchId")
-                        .HasColumnType("uniqueidentifier");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BatchId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -164,12 +170,14 @@ namespace MEval.Api.Migrations
 
             modelBuilder.Entity("MEval.Api.Models.ImportRowError", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("BatchId")
-                        .HasColumnType("uniqueidentifier");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BatchId")
+                        .HasColumnType("int");
 
                     b.Property<string>("ColumnName")
                         .IsRequired()
@@ -197,9 +205,11 @@ namespace MEval.Api.Migrations
 
             modelBuilder.Entity("MEval.Api.Models.PasswordResetToken", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
@@ -220,8 +230,8 @@ namespace MEval.Api.Migrations
                     b.Property<DateTime?>("UsedAtUtc")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -232,9 +242,11 @@ namespace MEval.Api.Migrations
 
             modelBuilder.Entity("MEval.Api.Models.Permission", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -261,9 +273,11 @@ namespace MEval.Api.Migrations
 
             modelBuilder.Entity("MEval.Api.Models.RefreshToken", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
@@ -292,8 +306,8 @@ namespace MEval.Api.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -306,9 +320,11 @@ namespace MEval.Api.Migrations
 
             modelBuilder.Entity("MEval.Api.Models.Role", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -336,11 +352,11 @@ namespace MEval.Api.Migrations
 
             modelBuilder.Entity("MEval.Api.Models.RolePermission", b =>
                 {
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("PermissionId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
 
                     b.HasKey("RoleId", "PermissionId");
 
@@ -351,9 +367,11 @@ namespace MEval.Api.Migrations
 
             modelBuilder.Entity("MEval.Api.Models.User", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
@@ -371,8 +389,8 @@ namespace MEval.Api.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.Property<Guid?>("ImportBatchId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("ImportBatchId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -420,17 +438,17 @@ namespace MEval.Api.Migrations
 
             modelBuilder.Entity("MEval.Api.Models.UserRole", b =>
                 {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("AssignedAtUtc")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("AssignedByUserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("AssignedByUserId")
+                        .HasColumnType("int");
 
                     b.HasKey("UserId", "RoleId");
 

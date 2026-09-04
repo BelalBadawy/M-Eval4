@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace MEval.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialAuthSchema : Migration
+    public partial class InitialAuthSchemaIntIds : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,7 +15,8 @@ namespace MEval.Api.Migrations
                 name: "Permissions",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Code = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     Module = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
@@ -29,7 +30,8 @@ namespace MEval.Api.Migrations
                 name: "Roles",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     Level = table.Column<int>(type: "int", nullable: false),
@@ -44,8 +46,8 @@ namespace MEval.Api.Migrations
                 name: "RolePermissions",
                 columns: table => new
                 {
-                    RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PermissionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    RoleId = table.Column<int>(type: "int", nullable: false),
+                    PermissionId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -68,8 +70,9 @@ namespace MEval.Api.Migrations
                 name: "AuditLogs",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ActorUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ActorUserId = table.Column<int>(type: "int", nullable: true),
                     Action = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     EntityType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     EntityId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
@@ -86,7 +89,8 @@ namespace MEval.Api.Migrations
                 name: "ImportBatches",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     FileName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     FileSize = table.Column<long>(type: "bigint", nullable: false),
                     TotalRows = table.Column<int>(type: "int", nullable: false),
@@ -98,7 +102,7 @@ namespace MEval.Api.Migrations
                     Status = table.Column<int>(type: "int", nullable: false),
                     DuplicateStrategy = table.Column<int>(type: "int", nullable: false),
                     CommitPolicy = table.Column<int>(type: "int", nullable: false),
-                    CreatedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedByUserId = table.Column<int>(type: "int", nullable: false),
                     CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CompletedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CancelledAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true)
@@ -112,8 +116,9 @@ namespace MEval.Api.Migrations
                 name: "ImportBatchRows",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    BatchId = table.Column<int>(type: "int", nullable: false),
                     RowNumber = table.Column<int>(type: "int", nullable: false),
                     FullName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
@@ -134,8 +139,9 @@ namespace MEval.Api.Migrations
                 name: "ImportRowErrors",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    BatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    BatchId = table.Column<int>(type: "int", nullable: false),
                     RowNumber = table.Column<int>(type: "int", nullable: false),
                     ColumnName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Reason = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
@@ -156,7 +162,8 @@ namespace MEval.Api.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     FullName = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     PhoneNumber = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
@@ -167,7 +174,7 @@ namespace MEval.Api.Migrations
                     FailedLoginAttempts = table.Column<int>(type: "int", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     Source = table.Column<int>(type: "int", nullable: false),
-                    ImportBatchId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    ImportBatchId = table.Column<int>(type: "int", nullable: true),
                     IsRolledBack = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -188,8 +195,9 @@ namespace MEval.Api.Migrations
                 name: "PasswordResetTokens",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
                     TokenHash = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ExpiresAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -211,8 +219,9 @@ namespace MEval.Api.Migrations
                 name: "RefreshTokens",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
                     TokenHash = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     CreatedByIp = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -236,10 +245,10 @@ namespace MEval.Api.Migrations
                 name: "UserRoles",
                 columns: table => new
                 {
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    RoleId = table.Column<int>(type: "int", nullable: false),
                     AssignedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    AssignedByUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                    AssignedByUserId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {

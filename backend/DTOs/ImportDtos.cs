@@ -3,7 +3,7 @@ using MEval.Api.Models;
 namespace MEval.Api.DTOs;
 
 public record ImportDryRunResultDto(
-    Guid BatchId,
+    int BatchId,
     string FileName,
     int TotalRows,
     int ValidRows,
@@ -23,7 +23,7 @@ public record ImportRowErrorDto(
 );
 
 public record ImportExecuteResponse(
-    Guid BatchId,
+    int BatchId,
     ImportStatus Status,
     int CreatedCount,
     int UpdatedCount,
@@ -32,7 +32,7 @@ public record ImportExecuteResponse(
 );
 
 public record ImportHistoryDto(
-    Guid Id,
+    int Id,
     string FileName,
     long FileSize,
     int TotalRows,

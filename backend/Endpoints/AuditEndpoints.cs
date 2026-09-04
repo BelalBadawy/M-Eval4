@@ -18,7 +18,7 @@ public static class AuditEndpoints
 
         group.MapGet("/logs", async (
             IAuditService auditService,
-            Guid? actorUserId = null,
+            int? actorUserId = null,
             string? action = null,
             string? entityType = null,
             string? entityId = null,

@@ -18,7 +18,7 @@ public record UpdateProfileMeRequest(
 );
 
 public record UserDetailDto(
-    Guid Id,
+    int Id,
     string FullName,
     string Email,
     string? PhoneNumber,
@@ -27,7 +27,7 @@ public record UserDetailDto(
     bool IsLockedOut,
     DateTime? LockoutEndUtc,
     UserSource Source,
-    Guid? ImportBatchId,
+    int? ImportBatchId,
     DateTime CreatedAtUtc,
     DateTime? PasswordChangedAtUtc,
     List<string> Roles,
@@ -39,7 +39,7 @@ public record UserFilterParams(
     string? Role,
     string? Status, // "active", "inactive", "locked"
     UserSource? Source,
-    Guid? BatchId,
+    int? BatchId,
     bool? StillOnDefaultPassword,
     int PageIndex = 1,
     int PageSize = 20

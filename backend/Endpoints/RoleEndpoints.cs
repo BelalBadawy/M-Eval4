@@ -26,7 +26,7 @@ public static class RoleEndpoints
         .WithName("GetRoles")
         .WithSummary("List all roles with their assigned permissions");
 
-        group.MapGet("/{id:guid}", async (Guid id, IRoleService roleService) =>
+        group.MapGet("/{id:int}", async (int id, IRoleService roleService) =>
         {
             var role = await roleService.GetRoleByIdAsync(id);
             return role == null
@@ -59,8 +59,8 @@ public static class RoleEndpoints
         .WithName("CreateRole")
         .WithSummary("Create a new custom role");
 
-        group.MapPut("/{id:guid}", async (
-            Guid id,
+        group.MapPut("/{id:int}", async (
+            int id,
             UpdateRoleRequest request,
             IRoleService roleService,
             HttpContext httpContext) =>
@@ -85,8 +85,8 @@ public static class RoleEndpoints
         .WithName("UpdateRole")
         .WithSummary("Update custom role details");
 
-        group.MapDelete("/{id:guid}", async (
-            Guid id,
+        group.MapDelete("/{id:int}", async (
+            int id,
             IRoleService roleService,
             HttpContext httpContext) =>
         {
@@ -111,8 +111,8 @@ public static class RoleEndpoints
         .WithName("DeleteRole")
         .WithSummary("Delete a custom role");
 
-        group.MapPut("/{id:guid}/permissions", async (
-            Guid id,
+        group.MapPut("/{id:int}/permissions", async (
+            int id,
             UpdateRolePermissionsRequest request,
             IRoleService roleService,
             HttpContext httpContext) =>
@@ -143,9 +143,9 @@ public static class RoleEndpoints
             .RequireAuthorization()
             .AddEndpointFilter<FirstLoginGatewayFilter>();
 
-        userGroup.MapPost("/{id:guid}/roles/{roleId:guid}", async (
-            Guid id,
-            Guid roleId,
+        userGroup.MapPost("/{id:int}/roles/{roleId:int}", async (
+            int id,
+            int roleId,
             IRoleService roleService,
             HttpContext httpContext) =>
         {
@@ -170,9 +170,9 @@ public static class RoleEndpoints
         .WithName("AssignRole")
         .WithSummary("Assign role to user");
 
-        userGroup.MapDelete("/{id:guid}/roles/{roleId:guid}", async (
-            Guid id,
-            Guid roleId,
+        userGroup.MapDelete("/{id:int}/roles/{roleId:int}", async (
+            int id,
+            int roleId,
             IRoleService roleService,
             HttpContext httpContext) =>
         {
@@ -224,11 +224,11 @@ public static class RoleEndpoints
         return app;
     }
 
-    private static Guid? GetUserId(ClaimsPrincipal user)
+    private static int? GetUserId(ClaimsPrincipal user)
     {
         var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
                       ?? user.FindFirst("sub")?.Value;
 
-        return Guid.TryParse(idClaim, out var guid) ? guid : null;
+        return int.TryParse(idClaim, out var id) ? id : null;
     }
 }

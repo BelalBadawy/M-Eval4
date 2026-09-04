@@ -1,7 +1,7 @@
 namespace MEval.Api.DTOs;
 
 public record RoleDto(
-    Guid Id,
+    int Id,
     string Name,
     string? Description,
     int Level,
@@ -26,8 +26,8 @@ public record UpdateRolePermissionsRequest(
 );
 
 public record BulkAssignRoleRequest(
-    Guid RoleId,
-    List<Guid> UserIds
+    int RoleId,
+    List<int> UserIds
 );
 
 public record BulkAssignRoleResponse(

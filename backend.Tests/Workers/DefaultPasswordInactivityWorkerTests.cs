@@ -46,10 +46,10 @@ public class DefaultPasswordInactivityWorkerTests
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            var adminRole = new Role { Id = Guid.NewGuid(), Name = "Admin", Level = 50 };
+            var adminRole = new Role { Id = 1, Name = "Admin", Level = 50 };
             var adminUser = new User
             {
-                Id = Guid.NewGuid(),
+                Id = 1,
                 FullName = "Admin",
                 Email = "admin@meval.local",
                 PasswordHash = "hash",
@@ -64,7 +64,7 @@ public class DefaultPasswordInactivityWorkerTests
             // User 1: 15 days old, MustChangePassword = true -> SHOULD BE DEACTIVATED
             var expiredUser = new User
             {
-                Id = Guid.NewGuid(),
+                Id = 2,
                 FullName = "Expired Inactive User",
                 Email = "expired@meval.local",
                 PasswordHash = "hash",
@@ -76,7 +76,7 @@ public class DefaultPasswordInactivityWorkerTests
             // User 2: 5 days old, MustChangePassword = true -> SHOULD REMAIN ACTIVE
             var freshUser = new User
             {
-                Id = Guid.NewGuid(),
+                Id = 3,
                 FullName = "Fresh User",
                 Email = "fresh@meval.local",
                 PasswordHash = "hash",
@@ -88,7 +88,7 @@ public class DefaultPasswordInactivityWorkerTests
             // User 3: 20 days old, MustChangePassword = false -> SHOULD REMAIN ACTIVE
             var changedPasswordUser = new User
             {
-                Id = Guid.NewGuid(),
+                Id = 4,
                 FullName = "Changed Password User",
                 Email = "changed@meval.local",
                 PasswordHash = "hash",

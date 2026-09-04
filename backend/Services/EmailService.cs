@@ -6,7 +6,7 @@ public interface IEmailService
     Task SendPasswordChangedNotificationAsync(string toEmail);
     Task SendTemporaryPasswordEmailAsync(string toEmail, string temporaryPassword);
     Task SendDefaultPasswordSuspendedAlertAsync(string toEmail, string userFullName);
-    Task SendImportCompletedNotificationAsync(string toEmail, Guid batchId, int totalRows, int createdRows);
+    Task SendImportCompletedNotificationAsync(string toEmail, int batchId, int totalRows, int createdRows);
 }
 
 public class EmailService : IEmailService
@@ -42,7 +42,7 @@ public class EmailService : IEmailService
         return Task.CompletedTask;
     }
 
-    public Task SendImportCompletedNotificationAsync(string toEmail, Guid batchId, int totalRows, int createdRows)
+    public Task SendImportCompletedNotificationAsync(string toEmail, int batchId, int totalRows, int createdRows)
     {
         _logger.LogInformation("[EmailService] Import batch {BatchId} completed for {Email}. Total rows: {TotalRows}, Created rows: {CreatedRows}", batchId, toEmail, totalRows, createdRows);
         return Task.CompletedTask;

@@ -18,13 +18,13 @@ public interface IExcelImportService
         long fileSize,
         DuplicateStrategy strategy,
         CommitPolicy commitPolicy,
-        Guid callerUserId);
-    Task<byte[]?> GenerateErrorReportAsync(Guid batchId);
-    Task<(bool Success, ImportExecuteResponse? Response, string? ErrorReason)> ExecuteImportAsync(Guid batchId, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> CancelImportAsync(Guid batchId, Guid callerUserId);
-    Task<(bool Success, string? ErrorReason)> RollbackImportAsync(Guid batchId, Guid callerUserId);
+        int callerUserId);
+    Task<byte[]?> GenerateErrorReportAsync(int batchId);
+    Task<(bool Success, ImportExecuteResponse? Response, string? ErrorReason)> ExecuteImportAsync(int batchId, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> CancelImportAsync(int batchId, int callerUserId);
+    Task<(bool Success, string? ErrorReason)> RollbackImportAsync(int batchId, int callerUserId);
     Task<List<ImportHistoryDto>> GetImportHistoryAsync();
-    Task<ImportHistoryDto?> GetImportByIdAsync(Guid id);
+    Task<ImportHistoryDto?> GetImportByIdAsync(int id);
 }
 
 public class ExcelImportService : IExcelImportService
@@ -61,25 +61,27 @@ public class ExcelImportService : IExcelImportService
     public byte[] GenerateTemplate()
     {
         using var workbook = new XLWorkbook();
-        var worksheet = workbook.Worksheets.Add("Users");
+        var ws = workbook.Worksheets.Add("Users");
 
         // Headers
-        worksheet.Cell(1, 1).Value = "FullName";
-        worksheet.Cell(1, 2).Value = "Email";
+        ws.Cell(1, 1).Value = "FullName";
+        ws.Cell(1, 2).Value = "Email";
 
-        var headerRange = worksheet.Range(1, 1, 1, 2);
-        headerRange.Style.Font.Bold = true;
-        headerRange.Style.Fill.BackgroundColor = XLColor.FromTheme(XLThemeColor.Accent1, 0.8);
+        var header = ws.Range(1, 1, 1, 2);
+        header.Style.Font.Bold = true;
+        header.Style.Fill.BackgroundColor = XLColor.LightGray;
 
-        // Sample Row
-        worksheet.Cell(2, 1).Value = "John Doe";
-        worksheet.Cell(2, 2).Value = "john.doe@example.com";
+        // Sample instruction rows
+        ws.Cell(2, 1).Value = "John Doe";
+        ws.Cell(2, 2).Value = "john.doe@company.com";
+        ws.Cell(3, 1).Value = "Jane Smith";
+        ws.Cell(3, 2).Value = "jane.smith@company.com";
 
-        worksheet.Columns().AdjustToContents();
+        ws.Columns().AdjustToContents();
 
-        using var memoryStream = new MemoryStream();
-        workbook.SaveAs(memoryStream);
-        return memoryStream.ToArray();
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return ms.ToArray();
     }
 
     public async Task<(bool Success, ImportDryRunResultDto? Result, string? ErrorReason)> DryRunImportAsync(
@@ -88,41 +90,43 @@ public class ExcelImportService : IExcelImportService
         long fileSize,
         DuplicateStrategy strategy,
         CommitPolicy commitPolicy,
-        Guid callerUserId)
+        int callerUserId)
     {
         var maxBytes = (_securitySettings.MaxImportFileSizeMb > 0 ? _securitySettings.MaxImportFileSizeMb : 5) * 1024 * 1024;
         if (fileSize > maxBytes)
         {
-            return (false, null, $"FileTooLarge: Maximum allowed file size is {_securitySettings.MaxImportFileSizeMb} MB.");
+            return (false, null, $"FileSizeLimitExceeded: File size {fileSize} bytes exceeds maximum limit of {maxBytes} bytes.");
         }
 
         using var workbook = new XLWorkbook(fileStream);
         var worksheet = workbook.Worksheets.FirstOrDefault();
         if (worksheet == null)
         {
-            return (false, null, "EmptyFile: No worksheets found in the Excel workbook.");
+            return (false, null, "InvalidSpreadsheet: Workbook contains no worksheets.");
         }
 
-        // 1. Inspect Headers (Row 1)
-        var firstRow = worksheet.Row(1);
+        // 1. Validate header row
+        var headerRow = worksheet.Row(1);
         int fullNameCol = -1;
         int emailCol = -1;
 
-        foreach (var cell in firstRow.CellsUsed())
+        int lastCol = headerRow.LastCellUsed()?.Address.ColumnNumber ?? 0;
+        for (int c = 1; c <= lastCol; c++)
         {
-            var header = cell.GetString().Trim();
-            if (ForbiddenColumns.Contains(header))
+            var headerVal = headerRow.Cell(c).GetString().Trim();
+
+            if (ForbiddenColumns.Contains(headerVal))
             {
-                return (false, null, $"ForbiddenColumn: Column '{header}' is forbidden. Imports only accept FullName and Email.");
+                return (false, null, $"ForbiddenColumn: Column '{headerVal}' is forbidden in user bulk import.");
             }
 
-            if (string.Equals(header, "FullName", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(headerVal, "FullName", StringComparison.OrdinalIgnoreCase))
             {
-                fullNameCol = cell.Address.ColumnNumber;
+                fullNameCol = c;
             }
-            else if (string.Equals(header, "Email", StringComparison.OrdinalIgnoreCase))
+            else if (string.Equals(headerVal, "Email", StringComparison.OrdinalIgnoreCase))
             {
-                emailCol = cell.Address.ColumnNumber;
+                emailCol = c;
             }
         }
 
@@ -147,9 +151,6 @@ public class ExcelImportService : IExcelImportService
         }
 
         // 3. Extract and parse data rows
-        var stagedRows = new List<ImportBatchRow>();
-        var errors = new List<ImportRowError>();
-
         var rawRowsData = new List<(int RowNum, string RawName, string RawEmail)>();
         for (int r = 2; r <= lastRowUsed; r++)
         {
@@ -178,7 +179,26 @@ public class ExcelImportService : IExcelImportService
         int validCount = 0;
         int invalidCount = 0;
 
-        var batchId = Guid.NewGuid();
+        // Pre-create the ImportBatch to obtain identity Id
+        var batch = new ImportBatch
+        {
+            FileName = fileName,
+            FileSize = fileSize,
+            TotalRows = totalRows,
+            ValidRows = 0,
+            InvalidRows = 0,
+            Status = ImportStatus.Validated,
+            DuplicateStrategy = strategy,
+            CommitPolicy = commitPolicy,
+            CreatedByUserId = callerUserId,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        _context.ImportBatches.Add(batch);
+        await _context.SaveChangesAsync();
+
+        var stagedRows = new List<ImportBatchRow>();
+        var errors = new List<ImportRowError>();
 
         foreach (var item in rawRowsData)
         {
@@ -192,8 +212,7 @@ public class ExcelImportService : IExcelImportService
             {
                 errors.Add(new ImportRowError
                 {
-                    Id = Guid.NewGuid(),
-                    BatchId = batchId,
+                    BatchId = batch.Id,
                     RowNumber = rowNum,
                     ColumnName = "FullName",
                     Reason = "FullName is required.",
@@ -205,8 +224,7 @@ public class ExcelImportService : IExcelImportService
             {
                 errors.Add(new ImportRowError
                 {
-                    Id = Guid.NewGuid(),
-                    BatchId = batchId,
+                    BatchId = batch.Id,
                     RowNumber = rowNum,
                     ColumnName = "FullName",
                     Reason = "FullName cannot exceed 150 characters.",
@@ -219,8 +237,7 @@ public class ExcelImportService : IExcelImportService
             {
                 errors.Add(new ImportRowError
                 {
-                    Id = Guid.NewGuid(),
-                    BatchId = batchId,
+                    BatchId = batch.Id,
                     RowNumber = rowNum,
                     ColumnName = "Email",
                     Reason = "Email is required.",
@@ -232,8 +249,7 @@ public class ExcelImportService : IExcelImportService
             {
                 errors.Add(new ImportRowError
                 {
-                    Id = Guid.NewGuid(),
-                    BatchId = batchId,
+                    BatchId = batch.Id,
                     RowNumber = rowNum,
                     ColumnName = "Email",
                     Reason = "Invalid email address format.",
@@ -247,8 +263,7 @@ public class ExcelImportService : IExcelImportService
                 invalidCount++;
                 stagedRows.Add(new ImportBatchRow
                 {
-                    Id = Guid.NewGuid(),
-                    BatchId = batchId,
+                    BatchId = batch.Id,
                     RowNumber = rowNum,
                     FullName = fullName,
                     Email = email,
@@ -262,8 +277,7 @@ public class ExcelImportService : IExcelImportService
                 inFileDupCount++;
                 errors.Add(new ImportRowError
                 {
-                    Id = Guid.NewGuid(),
-                    BatchId = batchId,
+                    BatchId = batch.Id,
                     RowNumber = rowNum,
                     ColumnName = "Email",
                     Reason = "Duplicate email address found in the import file.",
@@ -272,8 +286,7 @@ public class ExcelImportService : IExcelImportService
 
                 stagedRows.Add(new ImportBatchRow
                 {
-                    Id = Guid.NewGuid(),
-                    BatchId = batchId,
+                    BatchId = batch.Id,
                     RowNumber = rowNum,
                     FullName = fullName,
                     Email = email,
@@ -291,8 +304,7 @@ public class ExcelImportService : IExcelImportService
                     invalidCount++;
                     errors.Add(new ImportRowError
                     {
-                        Id = Guid.NewGuid(),
-                        BatchId = batchId,
+                        BatchId = batch.Id,
                         RowNumber = rowNum,
                         ColumnName = "Email",
                         Reason = "User with email is soft-deleted; requires manual administrator restore",
@@ -301,8 +313,7 @@ public class ExcelImportService : IExcelImportService
 
                     stagedRows.Add(new ImportBatchRow
                     {
-                        Id = Guid.NewGuid(),
-                        BatchId = batchId,
+                        BatchId = batch.Id,
                         RowNumber = rowNum,
                         FullName = fullName,
                         Email = email,
@@ -314,8 +325,7 @@ public class ExcelImportService : IExcelImportService
                     dbDupCount++;
                     stagedRows.Add(new ImportBatchRow
                     {
-                        Id = Guid.NewGuid(),
-                        BatchId = batchId,
+                        BatchId = batch.Id,
                         RowNumber = rowNum,
                         FullName = fullName,
                         Email = email,
@@ -328,8 +338,7 @@ public class ExcelImportService : IExcelImportService
             validCount++;
             stagedRows.Add(new ImportBatchRow
             {
-                Id = Guid.NewGuid(),
-                BatchId = batchId,
+                BatchId = batch.Id,
                 RowNumber = rowNum,
                 FullName = fullName,
                 Email = email,
@@ -337,22 +346,9 @@ public class ExcelImportService : IExcelImportService
             });
         }
 
-        var batch = new ImportBatch
-        {
-            Id = batchId,
-            FileName = fileName,
-            FileSize = fileSize,
-            TotalRows = totalRows,
-            ValidRows = validCount,
-            InvalidRows = invalidCount,
-            Status = ImportStatus.Validated,
-            DuplicateStrategy = strategy,
-            CommitPolicy = commitPolicy,
-            CreatedByUserId = callerUserId,
-            CreatedAtUtc = DateTime.UtcNow
-        };
+        batch.ValidRows = validCount;
+        batch.InvalidRows = invalidCount;
 
-        _context.ImportBatches.Add(batch);
         _context.ImportBatchRows.AddRange(stagedRows);
         _context.ImportRowErrors.AddRange(errors);
         await _context.SaveChangesAsync();
@@ -380,7 +376,7 @@ public class ExcelImportService : IExcelImportService
         return (true, resultDto, null);
     }
 
-    public async Task<byte[]?> GenerateErrorReportAsync(Guid batchId)
+    public async Task<byte[]?> GenerateErrorReportAsync(int batchId)
     {
         var errors = await _context.ImportRowErrors
             .AsNoTracking()
@@ -421,7 +417,7 @@ public class ExcelImportService : IExcelImportService
         return ms.ToArray();
     }
 
-    public async Task<(bool Success, ImportExecuteResponse? Response, string? ErrorReason)> ExecuteImportAsync(Guid batchId, Guid callerUserId)
+    public async Task<(bool Success, ImportExecuteResponse? Response, string? ErrorReason)> ExecuteImportAsync(int batchId, int callerUserId)
     {
         // 1. Concurrency check: Single active import lock
         var isProcessing = await _context.ImportBatches.AnyAsync(b => b.Status == ImportStatus.Processing);
@@ -470,7 +466,6 @@ public class ExcelImportService : IExcelImportService
         int failedCount = 0;
 
         var newUsers = new List<User>();
-        var newUserRoles = new List<UserRole>();
 
         foreach (var row in stagedRows)
         {
@@ -508,7 +503,6 @@ public class ExcelImportService : IExcelImportService
             {
                 var newUser = new User
                 {
-                    Id = Guid.NewGuid(),
                     FullName = row.FullName,
                     Email = row.Email,
                     PasswordHash = defaultPasswordHash,
@@ -519,20 +513,19 @@ public class ExcelImportService : IExcelImportService
                     CreatedAtUtc = DateTime.UtcNow
                 };
 
-                newUsers.Add(newUser);
-                liveUserMap[newUser.Email] = newUser;
-
                 if (defaultRole != null)
                 {
-                    newUserRoles.Add(new UserRole
+                    newUser.UserRoles.Add(new UserRole
                     {
-                        UserId = newUser.Id,
-                        RoleId = defaultRole.Id,
+                        User = newUser,
+                        Role = defaultRole,
                         AssignedAtUtc = DateTime.UtcNow,
                         AssignedByUserId = callerUserId
                     });
                 }
 
+                newUsers.Add(newUser);
+                liveUserMap[newUser.Email] = newUser;
                 createdCount++;
             }
         }
@@ -548,7 +541,6 @@ public class ExcelImportService : IExcelImportService
         }
 
         _context.Users.AddRange(newUsers);
-        _context.UserRoles.AddRange(newUserRoles);
 
         batch.CreatedRows = createdCount;
         batch.UpdatedRows = updatedCount;
@@ -570,7 +562,7 @@ public class ExcelImportService : IExcelImportService
         return (true, new ImportExecuteResponse(batch.Id, batch.Status, createdCount, updatedCount, skippedCount, failedCount), null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> CancelImportAsync(Guid batchId, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> CancelImportAsync(int batchId, int callerUserId)
     {
         var batch = await _context.ImportBatches
             .IgnoreQueryFilters()
@@ -595,7 +587,7 @@ public class ExcelImportService : IExcelImportService
         return (true, null);
     }
 
-    public async Task<(bool Success, string? ErrorReason)> RollbackImportAsync(Guid batchId, Guid callerUserId)
+    public async Task<(bool Success, string? ErrorReason)> RollbackImportAsync(int batchId, int callerUserId)
     {
         var batch = await _context.ImportBatches
             .IgnoreQueryFilters()
@@ -650,7 +642,7 @@ public class ExcelImportService : IExcelImportService
             .ToListAsync();
     }
 
-    public async Task<ImportHistoryDto?> GetImportByIdAsync(Guid id)
+    public async Task<ImportHistoryDto?> GetImportByIdAsync(int id)
     {
         var b = await _context.ImportBatches
             .AsNoTracking()

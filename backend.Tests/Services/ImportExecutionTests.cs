@@ -12,7 +12,7 @@ namespace MEval.Api.Tests.Services;
 
 public class ImportExecutionTests
 {
-    private (AppDbContext Context, ExcelImportService Service, Guid CallerId) CreateService()
+    private (AppDbContext Context, ExcelImportService Service, int CallerId) CreateService()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -36,7 +36,6 @@ public class ImportExecutionTests
 
         var callerUser = new User
         {
-            Id = Guid.NewGuid(),
             FullName = "Admin Caller",
             Email = "admincaller@meval.local",
             PasswordHash = "hash",
@@ -55,7 +54,7 @@ public class ImportExecutionTests
         var (context, service, callerId) = CreateService();
 
         // Seed default role
-        var defaultRole = new Role { Id = Guid.NewGuid(), Name = "User", Level = 10 };
+        var defaultRole = new Role { Id = 1, Name = "User", Level = 10 };
         context.Roles.Add(defaultRole);
         await context.SaveChangesAsync();
 
@@ -83,7 +82,6 @@ public class ImportExecutionTests
         // 3. Simulate another admin creating "candidate1@meval.local" directly in the DB between dry-run and execute!
         context.Users.Add(new User
         {
-            Id = Guid.NewGuid(),
             FullName = "Candidate One Interleaved",
             Email = "candidate1@meval.local",
             PasswordHash = "hash",
@@ -151,13 +149,12 @@ public class ImportExecutionTests
     {
         var (context, service, callerId) = CreateService();
 
-        var defaultRole = new Role { Id = Guid.NewGuid(), Name = "User", Level = 10 };
+        var defaultRole = new Role { Id = 1, Name = "User", Level = 10 };
         context.Roles.Add(defaultRole);
 
         // Pre-existing user in DB
         var preExistingUser = new User
         {
-            Id = Guid.NewGuid(),
             FullName = "Pre Existing User",
             Email = "preexisting@meval.local",
             PasswordHash = "hash",

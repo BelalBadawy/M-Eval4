@@ -4,9 +4,9 @@ namespace MEval.Api.Models;
 
 public class ImportRowError
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public int Id { get; set; }
 
-    public Guid BatchId { get; set; }
+    public int BatchId { get; set; }
 
     public int RowNumber { get; set; }
 

@@ -70,8 +70,8 @@ public static class ImportEndpoints
         .WithName("DryRunImport")
         .WithSummary("Validate and dry-run user import file, staging rows in database");
 
-        group.MapPost("/{id:guid}/execute", async (
-            Guid id,
+        group.MapPost("/{id:int}/execute", async (
+            int id,
             IExcelImportService importService,
             HttpContext httpContext) =>
         {
@@ -100,8 +100,8 @@ public static class ImportEndpoints
         .WithName("ExecuteImport")
         .WithSummary("Execute validated import batch with live DB re-validation");
 
-        group.MapPost("/{id:guid}/cancel", async (
-            Guid id,
+        group.MapPost("/{id:int}/cancel", async (
+            int id,
             IExcelImportService importService,
             HttpContext httpContext) =>
         {
@@ -122,8 +122,8 @@ public static class ImportEndpoints
         .WithName("CancelImport")
         .WithSummary("Cancel pending or validated import batch");
 
-        group.MapPost("/{id:guid}/rollback", async (
-            Guid id,
+        group.MapPost("/{id:int}/rollback", async (
+            int id,
             IExcelImportService importService,
             HttpContext httpContext) =>
         {
@@ -153,7 +153,7 @@ public static class ImportEndpoints
         .WithName("GetImportHistory")
         .WithSummary("Get user import history");
 
-        group.MapGet("/{id:guid}", async (Guid id, IExcelImportService importService) =>
+        group.MapGet("/{id:int}", async (int id, IExcelImportService importService) =>
         {
             var batch = await importService.GetImportByIdAsync(id);
             return batch == null
@@ -164,8 +164,8 @@ public static class ImportEndpoints
         .WithName("GetImportById")
         .WithSummary("Get import batch details by ID");
 
-        group.MapGet("/{id:guid}/errors.xlsx", async (
-            Guid id,
+        group.MapGet("/{id:int}/errors.xlsx", async (
+            int id,
             IExcelImportService importService) =>
         {
             var fileBytes = await importService.GenerateErrorReportAsync(id);
@@ -186,11 +186,11 @@ public static class ImportEndpoints
         return app;
     }
 
-    private static Guid? GetUserId(ClaimsPrincipal user)
+    private static int? GetUserId(ClaimsPrincipal user)
     {
         var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
                       ?? user.FindFirst("sub")?.Value;
 
-        return Guid.TryParse(idClaim, out var guid) ? guid : null;
+        return int.TryParse(idClaim, out var id) ? id : null;
     }
 }

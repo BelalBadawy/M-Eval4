@@ -296,11 +296,11 @@ public static class AuthEndpoints
                ?? "127.0.0.1";
     }
 
-    private static Guid? GetUserId(ClaimsPrincipal user)
+    private static int? GetUserId(ClaimsPrincipal user)
     {
         var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
                       ?? user.FindFirst("sub")?.Value;
 
-        return Guid.TryParse(idClaim, out var guid) ? guid : null;
+        return int.TryParse(idClaim, out var id) ? id : null;
     }
 }
