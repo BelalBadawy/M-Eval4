@@ -802,8 +802,7 @@
                     "type": "object",
                     "properties": {
                       "file": {
-                        "type": "string",
-                        "format": "binary"
+                        "$ref": "#/components/schemas/IFormFile"
                       }
                     }
                   },
@@ -1059,6 +1058,647 @@
           }
         }
       }
+    },
+    "/api/v1/org/structure": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "summary": "Retrieve active organization hierarchy tree (Companies -> Departments -> Sections)",
+        "operationId": "GetOrgStructure",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/org/companies": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "summary": "Retrieve list of active companies",
+        "operationId": "GetActiveCompanies",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/org/companies/{id}/departments": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "summary": "Retrieve active departments within a specific company",
+        "operationId": "GetDepartmentsByCompany",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/org/departments/{id}/sections": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "summary": "Retrieve active sections within a specific department",
+        "operationId": "GetSectionsByDepartment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/org/positions": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "summary": "Retrieve list of positions ordered by tier (NLevel)",
+        "operationId": "GetPositions",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/employees": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Search and filter employees with multifaceted criteria and pagination",
+        "operationId": "SearchEmployees",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "departmentId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sectionId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "positionId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "managerId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "nLevel",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "isEvaluationEligible",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "hasLinkedAccount",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "pageIndex",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/employees/orphans": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Retrieve active employees missing a direct manager who are not top-tier executives (NLevel > 1)",
+        "operationId": "GetEmployeeOrphans",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/employees/anomalies": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Retrieve comprehensive hierarchy anomalies (orphans, NLevel 1 with manager, cross-company/inactive managers)",
+        "operationId": "GetHierarchyAnomalies",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/employees/{id}": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Get full employee details by employee ID",
+        "operationId": "GetEmployeeById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/employees/{id}/manager-chain": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Traverse upward reporting line from employee to root executive (capped at 100 hops)",
+        "operationId": "GetManagerChain",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/employees/{id}/direct-reports": {
+      "get": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Retrieve all direct subordinate employees for a given manager",
+        "operationId": "GetDirectReports",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/employees/{id}/eligibility": {
+      "put": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Toggle an employee's evaluation eligibility status",
+        "operationId": "UpdateEvaluationEligibility",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEligibilityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/employees/{id}/link-user": {
+      "post": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Link an employee to an existing active application user account",
+        "operationId": "LinkUserAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkUserAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/employees/{id}/unlink-user": {
+      "post": {
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Unlink an application user account from an employee",
+        "operationId": "UnlinkUserAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/org/imports/template": {
+      "get": {
+        "tags": [
+          "Organization Import"
+        ],
+        "summary": "Download the 5-sheet Excel template for organization hierarchy and employee synchronization",
+        "operationId": "GetOrgImportTemplate",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/org/imports/dry-run": {
+      "post": {
+        "tags": [
+          "Organization Import"
+        ],
+        "summary": "Validate workbook integrity, cycle detection, and constraints without committing database changes",
+        "operationId": "DryRunOrgImport",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "$ref": "#/components/schemas/IFormFile"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/org/imports/execute": {
+      "post": {
+        "tags": [
+          "Organization Import"
+        ],
+        "summary": "Synchronously execute organization and employee synchronization with the uploaded workbook",
+        "operationId": "ExecuteOrgImport",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "$ref": "#/components/schemas/IFormFile"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/eligibility/summary": {
+      "get": {
+        "tags": [
+          "Eligibility"
+        ],
+        "summary": "Retrieve overall headcount and company breakdown for evaluation eligibility",
+        "operationId": "GetEligibilitySummary",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/eligibility/employees": {
+      "get": {
+        "tags": [
+          "Eligibility"
+        ],
+        "summary": "Query employees by evaluation eligibility (defaults to eligible population)",
+        "operationId": "SearchEligibleEmployees",
+        "parameters": [
+          {
+            "name": "isEligible",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "departmentId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/eligibility/excluded": {
+      "get": {
+        "tags": [
+          "Eligibility"
+        ],
+        "summary": "Query excluded employees where IsEvaluationEligible is false (reason: hr-flag-false)",
+        "operationId": "GetExcludedEmployees",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "departmentId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/eligibility/bulk-flag-update": {
+      "post": {
+        "tags": [
+          "Eligibility"
+        ],
+        "summary": "Update evaluation eligibility flag for up to 500 employees in an AllOrNothing transaction",
+        "operationId": "BulkFlagUpdate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkFlagUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1080,6 +1720,29 @@
               "type": "integer",
               "format": "int32"
             }
+          }
+        }
+      },
+      "BulkFlagUpdateRequest": {
+        "required": [
+          "employeeIds",
+          "isEvaluationEligible",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "isEvaluationEligible": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
           }
         }
       },
@@ -1158,6 +1821,22 @@
           }
         }
       },
+      "IFormFile": {
+        "type": "string",
+        "format": "binary"
+      },
+      "LinkUserAccountRequest": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "LoginRequest": {
         "required": [
           "email",
@@ -1196,6 +1875,22 @@
           },
           "newPassword": {
             "type": "string"
+          }
+        }
+      },
+      "UpdateEligibilityRequest": {
+        "required": [
+          "isEvaluationEligible"
+        ],
+        "type": "object",
+        "properties": {
+          "isEvaluationEligible": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "default": null,
+            "nullable": true
           }
         }
       },
@@ -1279,6 +1974,18 @@
     },
     {
       "name": "Audit"
+    },
+    {
+      "name": "Organization"
+    },
+    {
+      "name": "Employees"
+    },
+    {
+      "name": "Organization Import"
+    },
+    {
+      "name": "Eligibility"
     }
   ]
 }

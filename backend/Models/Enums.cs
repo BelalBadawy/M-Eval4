@@ -56,4 +56,5 @@ public static class RevokeReasons
     public const string AccountDeactivated = "AccountDeactivated";
     public const string RoleDowngraded = "RoleDowngraded";
     public const string BatchRolledBack = "BatchRolledBack";
+    public const string EmployeeOffboarded = "EmployeeOffboarded";
 }

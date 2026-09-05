@@ -38,6 +38,11 @@ builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserLifecycleService, UserLifecycleService>();
 builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IHierarchyService, HierarchyService>();
+builder.Services.AddScoped<IOrgStructureService, OrgStructureService>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<IOrgImportService, OrgImportService>();
+builder.Services.AddScoped<IEligibilityService, EligibilityService>();
 builder.Services.AddHostedService<MEval.Api.Workers.DefaultPasswordInactivityWorker>();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, MEval.Api.Security.PermissionAuthorizationHandler>();
 
@@ -136,6 +141,10 @@ app.MapUserEndpoints();
 app.MapRoleEndpoints();
 app.MapImportEndpoints();
 app.MapAuditEndpoints();
+app.MapOrgEndpoints();
+app.MapEmployeeEndpoints();
+app.MapOrgImportEndpoints();
+app.MapEligibilityEndpoints();
 
 app.Run();
 

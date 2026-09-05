@@ -21,6 +21,13 @@ public class AppDbContext : DbContext
     public DbSet<ImportRowError> ImportRowErrors => Set<ImportRowError>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    // Module 2 — Organization & Employee Hierarchy
+    public DbSet<Company> Companies => Set<Company>();
+    public DbSet<Department> Departments => Set<Department>();
+    public DbSet<Section> Sections => Set<Section>();
+    public DbSet<Position> Positions => Set<Position>();
+    public DbSet<Employee> Employees => Set<Employee>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -194,6 +201,127 @@ public class AppDbContext : DbContext
 
             b.HasIndex(al => al.TimestampUtc);
             b.HasIndex(al => al.ActorUserId);
+        });
+
+        // Module 2 — Company
+        modelBuilder.Entity<Company>(b =>
+        {
+            b.HasKey(c => c.CompanyId);
+            b.Property(c => c.CompanyId).ValueGeneratedNever();
+            b.Property(c => c.Name).IsRequired().HasMaxLength(200);
+        });
+
+        // Module 2 — Department
+        modelBuilder.Entity<Department>(b =>
+        {
+            b.HasKey(d => d.DepartmentId);
+            b.Property(d => d.DepartmentId).ValueGeneratedNever();
+            b.Property(d => d.Name).IsRequired().HasMaxLength(200);
+
+            // Composite alternate key (target for Employee composite FK)
+            b.HasAlternateKey(d => new { d.DepartmentId, d.CompanyId });
+
+            b.HasOne(d => d.Company)
+                .WithMany(c => c.Departments)
+                .HasForeignKey(d => d.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Module 2 — Section
+        modelBuilder.Entity<Section>(b =>
+        {
+            b.HasKey(s => s.SectionId);
+            b.Property(s => s.SectionId).ValueGeneratedNever();
+            b.Property(s => s.Name).IsRequired().HasMaxLength(200);
+
+            // Composite alternate key (target for Employee composite FK)
+            b.HasAlternateKey(s => new { s.SectionId, s.DepartmentId });
+
+            b.HasOne(s => s.Department)
+                .WithMany(d => d.Sections)
+                .HasForeignKey(s => s.DepartmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Module 2 — Position
+        modelBuilder.Entity<Position>(b =>
+        {
+            b.HasKey(p => p.PositionId);
+            b.Property(p => p.PositionId).ValueGeneratedNever();
+            b.Property(p => p.Name).IsRequired().HasMaxLength(200);
+
+            b.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_Positions_NLevel", "[NLevel] >= 1");
+            });
+        });
+
+        // Module 2 — Employee
+        modelBuilder.Entity<Employee>(b =>
+        {
+            b.HasKey(e => e.EmployeeId);
+            b.Property(e => e.EmployeeId).ValueGeneratedNever();
+            b.Property(e => e.EmployeeNumber).IsRequired().HasMaxLength(30);
+            b.Property(e => e.FullName).IsRequired().HasMaxLength(200);
+            b.Property(e => e.Email).HasMaxLength(200);
+
+            b.HasIndex(e => e.EmployeeNumber).IsUnique();
+
+            // Unique filtered index on Email (when not null and IsActive = 1)
+            b.HasIndex(e => e.Email)
+                .IsUnique()
+                .HasFilter("[Email] IS NOT NULL AND [IsActive] = 1");
+
+            // Unique filtered index on UserId (1:1 link to Users table)
+            b.HasIndex(e => e.UserId)
+                .IsUnique()
+                .HasFilter("[UserId] IS NOT NULL");
+
+            b.HasIndex(e => e.DirectManagerId);
+            b.HasIndex(e => e.DepartmentId);
+            b.HasIndex(e => e.SectionId);
+            b.HasIndex(e => e.EmploymentStatus);
+
+            b.HasOne(e => e.Company)
+                .WithMany(c => c.Employees)
+                .HasForeignKey(e => e.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(e => e.Position)
+                .WithMany(p => p.Employees)
+                .HasForeignKey(e => e.PositionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(e => e.DirectManager)
+                .WithMany(m => m.DirectReports)
+                .HasForeignKey(e => e.DirectManagerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.HasOne(e => e.User)
+                .WithOne()
+                .HasForeignKey<Employee>(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Composite FK: (DepartmentId, CompanyId) -> Departments
+            b.HasOne(e => e.Department)
+                .WithMany(d => d.Employees)
+                .HasForeignKey(e => new { e.DepartmentId, e.CompanyId })
+                .HasPrincipalKey(d => new { d.DepartmentId, d.CompanyId })
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Composite FK: (SectionId, DepartmentId) -> Sections
+            b.HasOne(e => e.Section)
+                .WithMany(s => s.Employees)
+                .HasForeignKey(e => new { e.SectionId, e.DepartmentId })
+                .HasPrincipalKey(s => new { s.SectionId, s.DepartmentId })
+                .OnDelete(DeleteBehavior.Restrict);
+
+            b.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_Empl_SectionNeedsDept", "[SectionId] IS NULL OR [DepartmentId] IS NOT NULL");
+                t.HasCheckConstraint("CK_Empl_StatusDates", "([EmploymentStatus] = 1 AND [ResignationDate] IS NULL) OR ([EmploymentStatus] IN (2, 3) AND [ResignationDate] IS NOT NULL)");
+                t.HasCheckConstraint("CK_Empl_ResignationAfterHire", "[ResignationDate] IS NULL OR [ResignationDate] >= [HireDate]");
+            });
         });
     }
 

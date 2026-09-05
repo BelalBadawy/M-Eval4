@@ -178,3 +178,88 @@ Provide an enterprise internal authentication, user provisioning, role-based acc
 
 #### Audit Logging
 - **AUTH-041** All authentication events, provisioning actions, role changes, status updates, and import jobs shall be recorded in the `AuditLog` table. Audit logs shall be immutable: updates and deletions shall be blocked at the database context level. Querying audit logs (`GET /api/v1/audit/logs`) shall be restricted to users possessing `audit.read`.
+
+---
+
+# 7. Module 2 — Organization & Employee Hierarchy
+
+### Purpose
+Maintain the organizational structure (Companies, Departments, Sections, Positions with N-Level) and employee reporting hierarchy that underpins evaluation eligibility (Module 3), cycle group generation & evaluator routing (Module 5), and historical membership snapshots (Module 6).
+
+### System Permissions
+- **Organization Read:** `org.read`
+- **HR Master Import:** `org.import`
+- **Eligibility Override:** `employees.manage-eligibility`
+- **User Account Binding:** `employees.link-user`
+
+### Requirements
+
+#### Organizational Structure & Lookups
+- **ORG-001** The system shall store organizational lookups (`Companies`, `Departments`, `Sections`, `Positions`) using external integer IDs as primary keys without database IDENTITY generation (`.ValueGeneratedNever()`).
+- **ORG-002** Organizational lookups shall have zero manual CRUD endpoints; the sole writer for lookups shall be the HR synchronization import process.
+- **ORG-003** Departments shall belong to exactly one Company; Sections shall belong to exactly one Department. Composite unique constraints `(DepartmentId, CompanyId)` and `(SectionId, DepartmentId)` shall be enforced in the database.
+- **ORG-004** Positions shall define an integer `NLevel >= 1`, where Level 1 represents the highest organizational tier (e.g., CEO/General Manager) and higher values represent lower hierarchy tiers.
+
+#### Employee Master & Placement Matrix
+- **ORG-005** Employees shall use the external HR `EmployeeId` as the primary key (`.ValueGeneratedNever()`) and `EmployeeNumber` as an immutable unique business key. An existing `EmployeeId` matched with a different `EmployeeNumber` shall be rejected as a row error.
+- **ORG-006** An employee's organizational placement shall be enforced via composite foreign keys: `(DepartmentId, CompanyId)` referencing `Departments` and `(SectionId, DepartmentId)` referencing `Sections`, configured with `DeleteBehavior.Restrict`.
+- **ORG-007** The system shall enforce via check constraint `CK_Empl_SectionNeedsDept` that `SectionId` cannot be assigned if `DepartmentId` is NULL.
+- **ORG-008** `EmploymentStatus` shall support `1 = Active`, `2 = Resigned`, and `3 = Terminated`. Database check constraints shall enforce:
+  - `CK_Empl_StatusDates`: `ResignationDate` is NULL for Active status and NOT NULL for Resigned or Terminated status.
+  - `CK_Empl_ResignationAfterHire`: `ResignationDate IS NULL OR ResignationDate >= HireDate`.
+
+#### Manager Hierarchy & Cycle Detection
+- **ORG-009** Each employee may reference a `DirectManagerId` pointing to `Employees(EmployeeId)` with `DeleteBehavior.Restrict`. Top-level executives (`NLevel = 1`) are expected to have `DirectManagerId = null`.
+- **ORG-010** The system shall detect and reject cyclical manager relationships of any depth (e.g., A reports to B, B reports to C, C reports to A) across the overlaid graph (`file rows ∪ existing DB employees`).
+- **ORG-011** A direct manager must be an active employee (`EmploymentStatus = 1` and `IsActive = 1`) within the same company.
+
+#### Dual Identity & Local Column Ownership
+- **ORG-012** The system shall link an employee to an application login account via `UserId INT NULL REFERENCES Users(Id)` (`DeleteBehavior.Restrict`), enforced by a filtered unique index `UX_Employees_UserId WHERE UserId IS NOT NULL`.
+- **ORG-013** The fields `UserId` and `IsActive` shall be locally managed and never overwritten by imports. `IsEvaluationEligible` shall be owned by the import process: on every import execution, the system shall reset eligibility for all employees absent from the file to 0 and set file-present employees to their file values, all within the same transaction. Administrators may adjust flags afterward per ORG-014; the next import re-establishes file authority. Manual eligibility adjustments are review-stage corrections within an import cycle; the next import re-establishes the file as the source of truth.
+- **ORG-014** Authorized administrators (`employees.manage-eligibility`) may toggle `IsEvaluationEligible` for an employee, writing an audit log entry (`EligibilityChanged`).
+- **ORG-015** Authorized administrators (`employees.link-user`) may link or unlink an employee to an existing `Users` account. Target user must exist and be active (`IsActive = true`); double-linking shall return `409 Conflict`. Audit entries (`UserLinked`, `UserUnlinked`) shall be recorded.
+
+#### Hierarchy Querying & Anomalies
+- **ORG-016** Querying the organizational hierarchy tree (`GET /api/v1/org/structure`) and companies list (`GET /api/v1/org/companies`) shall return active-only companies, active departments, and active sections.
+- **ORG-017** Querying an employee's manager chain (`GET /api/v1/employees/{id:int}/manager-chain`) shall traverse upward from the employee to the root manager (capped at 100 hops), returning each manager's `EmployeeId`, `FullName`, `PositionId`, `PositionName`, and `NLevel`.
+- **ORG-018** Querying an employee's direct reports (`GET /api/v1/employees/{id:int}/direct-reports`) shall return all active employees having `DirectManagerId` equal to the specified ID.
+- **ORG-019** An anomaly query (`GET /api/v1/employees/anomalies` and `GET /api/v1/employees/orphans`) shall perform comprehensive hierarchy integrity validation for Module 5's group generation gate, identifying:
+  - **Orphans:** active employees missing a direct manager who are not top-tier executives (`DirectManagerId == null && NLevel > 1`).
+  - **Root-with-Manager Anomalies:** top-tier executives who have an assigned direct manager (`DirectManagerId != null && NLevel == 1`), flagging suspicious root hierarchy corruption.
+  - **Manager Status/Company Mismatches:** active employees whose assigned manager is inactive, resigned, or in a different company.
+- **ORG-020** Employee search (`GET /api/v1/employees`) shall support pagination, full-text search, and filtering by `companyId`, `departmentId`, `sectionId`, `positionId`, `managerId`, `nLevel`, `status`, `isEvaluationEligible`, and `hasLinkedAccount`.
+
+#### HR Master Synchronization & Offboarding Cascade
+- **ORG-021** HR organizational import dry-run (`POST /api/v1/org/imports/dry-run`) shall validate file format, structural placement matrix integrity, manager links, and detect cycles, returning summary metrics and row error reports without modifying database state.
+- **ORG-022** HR organizational import execution (`POST /api/v1/org/imports/execute`) shall execute synchronously with the uploaded file within a single transaction (`CommitPolicy = AllOrNothing`), enforcing a single active import lock (`409 Conflict`) shared between dry-run and execute. In a single transaction: reset absent employees' eligibility (ORG-013), upsert lookups, upsert employees (including `IsEvaluationEligible` from the file), and apply the offboarding cascade. Duplicate strategies are evaluated against:
+  - `EmployeeId` (primary upsert join key).
+  - `EmployeeNumber` (must match existing ID; cross-ID duplicate numbers rejected as row error).
+  - `Email` (pre-validated against active DB users to prevent constraint violation).
+  Lookups and employees preserve local columns (`UserId`, `IsActive`), and accept NLevel 1 employees with a manager (flagging them via `/anomalies`).
+- **ORG-023** When an employee's status changes to Resigned or Terminated, active direct reports are flagged via the hierarchy anomaly query (manager-mismatch category) for managerial reassignment.
+- **ORG-024** Setting an employee `IsActive = false` acts as a local data-correction flag, excluding the employee from active queries, hierarchy, and evaluation eligibility without deactivating their linked `User` account.
+- **ORG-025** All organizational import success (`OrgImportExecuted`), import failure (`OrgImportFailed`), eligibility modification (`EligibilityChanged`), user linkage (`UserLinked`, `UserUnlinked`), and employee offboarding (`EmployeeOffboarded`) events shall be recorded in `AuditLogs`.
+- **ORG-026** When an employee's `EmploymentStatus` changes to Resigned (2) or Terminated (3) via import, the system shall deactivate the linked user account (`IsActive = false`), revoke its active session with reason `EmployeeOffboarded`, and write an audit entry (`EmployeeOffboarded`).
+- **ORG-027** The Employees sheet in the HR import shall represent the complete eligible population. Any employee absent from the sheet will have `IsEvaluationEligible` reset to 0. Partial/delta uploads are not supported for eligibility sync.
+- **ORG-028** Import dry-run and execute responses shall report `absentResetToIneligible` (employees zeroed by absence), `flagSetEligible`, and `flagSetIneligible`. The reset shall never execute outside the import transaction.
+
+---
+
+# 8. Module 3 — Evaluation Eligibility
+
+### Purpose
+Control and query which employees are eligible to participate in performance evaluation cycles. Effective eligibility is governed by the HR import synchronization process, with administrator review-stage override capabilities.
+
+### System Permissions
+- **Eligibility Read:** `org.read`
+- **Eligibility Override:** `employees.manage-eligibility`
+
+### Requirements
+- **ELIG-001** Effective evaluation eligibility shall be defined solely by `IsEvaluationEligible = true`. The flag is owned by the HR full-sync import (reset-then-import per ORG-013/ORG-028) and may be adjusted by administrators per ORG-014 until the next import. EmploymentStatus and IsActive shall not factor into eligibility. Employees who resigned during an evaluation year may remain eligible if HR includes them with flag 1; their linked user account is deactivated per ORG-026 while their employee record still participates — Module 5 must resolve evaluators for members without active accounts.
+- **ELIG-002** The system shall provide a centralized evaluation eligibility service (`IEligibilityService`) implementing set-based database querying and in-memory aggregation using the single condition `IsEvaluationEligible == true`.
+- **ELIG-003** Querying the eligibility summary (`GET /api/v1/eligibility/summary`) shall return overall headcount metrics (total employees, eligible count, excluded count) and a breakdown per company (`companyId`, `companyName`, `total`, `eligibleCount`, `excludedCount`).
+- **ELIG-004** Querying eligible employees (`GET /api/v1/eligibility/employees`) shall return a paginated list of employees. The parameter `isEligible` shall default to `true` when omitted (returning the eligible population). When `isEligible = false`, it shall return the ineligible population. Query supports filtering by `companyId`, `departmentId`, and search terms.
+- **ELIG-005** Querying excluded employees (`GET /api/v1/eligibility/excluded`) shall return a paginated list of employees where `IsEvaluationEligible = false`, each returning a single reason code: `hr-flag-false`.
+- **ELIG-006** Bulk eligibility flag update (`POST /api/v1/eligibility/bulk-flag-update`) shall allow administrators (`employees.manage-eligibility`) to update `IsEvaluationEligible` for up to 500 employee IDs with a mandatory reason in a single transaction. The validation shall be AllOrNothing: if any submitted `EmployeeId` does not exist, the request shall be rejected with `400 Bad Request` and return the missing IDs. A batch audit log (`EligibilityBulkChanged`) capturing the actor ID, actor IP address, count, target flag, and reason shall be recorded.
+- **ELIG-007** Individual eligibility flag modification (`PUT /api/v1/employees/{id:int}/eligibility`) shall be preserved with symmetric audit logging (`EligibilityChanged` recording actor IP address and reason).
+- **ELIG-008** Eligibility is a generation-time gate: evaluation group generation (Module 5) evaluates `IsEvaluationEligible == true` to capture the membership snapshot (`IsEvaluationEligibleSnapshot` in Module 6). Subsequent manual changes or imports do not modify historical group snapshots.

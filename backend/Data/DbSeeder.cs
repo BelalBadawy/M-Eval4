@@ -32,7 +32,11 @@ public class DbSeeder
             ("users.import", "Upload and execute bulk user Excel imports", "Users"),
             ("roles.manage", "Create, edit, and delete custom roles", "Roles"),
             ("roles.assign", "Assign or remove roles for users", "Roles"),
-            ("audit.read", "Query and view security and audit logs", "Audit")
+            ("audit.read", "Query and view security and audit logs", "Audit"),
+            ("org.read", "Read organizational structure and employee hierarchy", "Organization"),
+            ("org.import", "Upload and execute HR organizational master data imports", "Organization"),
+            ("employees.manage-eligibility", "Override evaluation eligibility for employees", "Employees"),
+            ("employees.link-user", "Bind or unbind employee records to application user accounts", "Employees")
         };
 
         var existingPermissions = await _context.Permissions.ToDictionaryAsync(p => p.Code);
@@ -115,12 +119,13 @@ public class DbSeeder
             }
         }
 
-        // Admin gets user management, role assignment, and audit read
+        // Admin gets user management, role assignment, audit read, and org management
         var adminPermCodes = new[]
         {
             "users.create", "users.read", "users.update", "users.deactivate",
             "users.delete", "users.unlock", "users.reset-password", "users.force-logout",
-            "users.import", "roles.assign", "audit.read"
+            "users.import", "roles.assign", "audit.read",
+            "org.read", "org.import", "employees.manage-eligibility", "employees.link-user"
         };
         foreach (var code in adminPermCodes)
         {
@@ -135,8 +140,8 @@ public class DbSeeder
             }
         }
 
-        // Auditor gets audit.read and users.read
-        var auditorPermCodes = new[] { "audit.read", "users.read" };
+        // Auditor gets audit.read, users.read, and org.read
+        var auditorPermCodes = new[] { "audit.read", "users.read", "org.read" };
         foreach (var code in auditorPermCodes)
         {
             if (existingPermissions.TryGetValue(code, out var perm))
