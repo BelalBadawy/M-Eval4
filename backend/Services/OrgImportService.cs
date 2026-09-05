@@ -77,7 +77,8 @@ public class OrgImportService : IOrgImportService
             "EmployeeId", "EmployeeNumber", "FullName", "Email",
             "CompanyId", "CompanyName", "DepartmentId", "DepartmentName",
             "SectionId", "SectionName", "PositionId", "PositionName", "NLevel",
-            "ManagerEmployeeId", "EmploymentStatus", "HireDate", "ResignationDate"
+            "ManagerEmployeeId", "EmploymentStatus", "HireDate", "ResignationDate",
+            "IsEvaluationEligible"
         };
         for (int i = 0; i < empHeaders.Length; i++)
         {
@@ -101,6 +102,7 @@ public class OrgImportService : IOrgImportService
         wsEmployees.Cell(2, 15).Value = 1; // Active
         wsEmployees.Cell(2, 16).Value = "2023-01-15";
         wsEmployees.Cell(2, 17).Value = "";
+        wsEmployees.Cell(2, 18).Value = 1; // Eligible
 
         using var ms = new MemoryStream();
         workbook.SaveAs(ms);
@@ -305,7 +307,20 @@ public class OrgImportService : IOrgImportService
                 }
                 await _context.SaveChangesAsync();
 
-                // 5. Upsert Employees (with in-memory manager resolution & offboarding cascade)
+                // 5. Reset absent employees' eligibility (ORG-013 / ORG-022 / ORG-028)
+                var fileEmpIds = parsedData.Employees.Select(e => e.EmployeeId).ToHashSet();
+                var absentEligible = await _context.Employees
+                    .Where(e => !fileEmpIds.Contains(e.EmployeeId) && e.IsEvaluationEligible)
+                    .ToListAsync();
+
+                foreach (var absent in absentEligible)
+                {
+                    absent.IsEvaluationEligible = false;
+                    absent.UpdatedAtUtc = DateTime.UtcNow;
+                }
+                await _context.SaveChangesAsync();
+
+                // 6. Upsert Employees (with in-memory manager resolution, file flag, & offboarding cascade)
                 int createdCount = 0;
                 int updatedCount = 0;
                 int offboardedCount = 0;
@@ -330,8 +345,8 @@ public class OrgImportService : IOrgImportService
                             EmploymentStatus = empRow.EmploymentStatus,
                             HireDate = empRow.HireDate,
                             ResignationDate = empRow.ResignationDate,
-                            IsEvaluationEligible = true, // Default local
-                            IsActive = true,             // Default local
+                            IsEvaluationEligible = empRow.IsEvaluationEligible, // File value
+                            IsActive = true,                                     // Default local
                             CreatedAtUtc = DateTime.UtcNow,
                             UpdatedAtUtc = DateTime.UtcNow
                         };
@@ -340,7 +355,7 @@ public class OrgImportService : IOrgImportService
                     }
                     else
                     {
-                        // Updated — preserve local columns: IsEvaluationEligible, UserId, IsActive
+                        // Updated — preserve local columns: UserId, IsActive; IsEvaluationEligible is owned by file (P1)
                         var previousStatus = existing.EmploymentStatus;
                         var newStatus = empRow.EmploymentStatus;
 
@@ -354,6 +369,7 @@ public class OrgImportService : IOrgImportService
                         existing.EmploymentStatus = newStatus;
                         existing.HireDate = empRow.HireDate;
                         existing.ResignationDate = empRow.ResignationDate;
+                        existing.IsEvaluationEligible = empRow.IsEvaluationEligible; // Overwritten from file!
                         existing.UpdatedAtUtc = DateTime.UtcNow;
 
                         // Offboarding cascade (ORG-026)
@@ -482,7 +498,8 @@ public class OrgImportService : IOrgImportService
         int? ManagerEmployeeId,
         EmploymentStatus EmploymentStatus,
         DateOnly HireDate,
-        DateOnly? ResignationDate
+        DateOnly? ResignationDate,
+        bool IsEvaluationEligible
     );
 
     private async Task<(bool Success, ParsedData? Data, OrgImportSummaryDto? Summary, string? ErrorReason, int StatusCode)> ParseAndValidateAsync(Stream fileStream)
@@ -700,6 +717,8 @@ public class OrgImportService : IOrgImportService
             var seenEmployeeNumbers = new Dictionary<string, int>(); // number -> employeeId
             var seenEmails = new HashSet<string>();
             int anomaliesCount = 0;
+            int flagSetEligible = 0;
+            int flagSetIneligible = 0;
 
             foreach (var row in empRows)
             {
@@ -726,6 +745,24 @@ public class OrgImportService : IOrgImportService
                 var statusStr = row.Cell(15).GetString().Trim();
                 var hireDateStr = row.Cell(16).GetString().Trim();
                 var resDateStr = row.Cell(17).GetString().Trim();
+                var eligStr = row.Cell(18).GetString().Trim();
+
+                bool isEvaluationEligible;
+                if (eligStr == "1" || string.Equals(eligStr, "true", StringComparison.OrdinalIgnoreCase))
+                {
+                    isEvaluationEligible = true;
+                    flagSetEligible++;
+                }
+                else if (eligStr == "0" || string.Equals(eligStr, "false", StringComparison.OrdinalIgnoreCase))
+                {
+                    isEvaluationEligible = false;
+                    flagSetIneligible++;
+                }
+                else
+                {
+                    errors.Add(new OrgImportRowErrorDto("Employees", rNum, empIdStr, "IsEvaluationEligible", "Value must be 1 (Eligible) or 0 (Ineligible).", eligStr));
+                    continue;
+                }
 
                 // Validation: Required IDs
                 if (!int.TryParse(empIdStr, out var empId) || empId <= 0)
@@ -973,7 +1010,8 @@ public class OrgImportService : IOrgImportService
                     mgrId,
                     status,
                     hireDate,
-                    resDate
+                    resDate,
+                    isEvaluationEligible
                 ));
             }
 
@@ -1022,6 +1060,10 @@ public class OrgImportService : IOrgImportService
                 }
             }
 
+            var fileEmpIds = data.Employees.Select(e => e.EmployeeId).ToHashSet();
+            int absentResetCount = await _context.Employees
+                .CountAsync(e => !fileEmpIds.Contains(e.EmployeeId) && e.IsEvaluationEligible);
+
             var summary = new OrgImportSummaryDto(
                 data.Companies.Count,
                 data.Departments.Count,
@@ -1034,6 +1076,9 @@ public class OrgImportService : IOrgImportService
                 errors.Count,
                 0,
                 anomaliesCount,
+                absentResetCount,
+                flagSetEligible,
+                flagSetIneligible,
                 errors
             );
 

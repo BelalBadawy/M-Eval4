@@ -21,6 +21,9 @@ public record OrgImportSummaryDto(
     int EmployeesFailed,
     int OffboardedCascadeCount,
     int AnomaliesFlagged,
+    int AbsentResetToIneligible,
+    int FlagSetEligible,
+    int FlagSetIneligible,
     List<OrgImportRowErrorDto> Errors
 );
 

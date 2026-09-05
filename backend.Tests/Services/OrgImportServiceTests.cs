@@ -80,7 +80,8 @@ public class OrgImportServiceTests
             "EmployeeId", "EmployeeNumber", "FullName", "Email",
             "CompanyId", "CompanyName", "DepartmentId", "DepartmentName",
             "SectionId", "SectionName", "PositionId", "PositionName", "NLevel",
-            "ManagerEmployeeId", "EmploymentStatus", "HireDate", "ResignationDate"
+            "ManagerEmployeeId", "EmploymentStatus", "HireDate", "ResignationDate",
+            "IsEvaluationEligible"
         };
         for (int i = 0; i < headers.Length; i++)
         {
@@ -105,6 +106,7 @@ public class OrgImportServiceTests
         wsE.Cell(2, 15).Value = 1; // Active
         wsE.Cell(2, 16).Value = "2020-01-01";
         wsE.Cell(2, 17).Value = "";
+        wsE.Cell(2, 18).Value = 1; // Eligible
 
         // Row 3: Staff Architect (NLevel 2, reporting to CEO)
         wsE.Cell(3, 1).Value = 1001;
@@ -124,6 +126,7 @@ public class OrgImportServiceTests
         wsE.Cell(3, 15).Value = 1; // Active
         wsE.Cell(3, 16).Value = "2021-06-01";
         wsE.Cell(3, 17).Value = "";
+        wsE.Cell(3, 18).Value = 1; // Eligible
 
         customize?.Invoke(wb);
 
@@ -463,7 +466,7 @@ public class OrgImportServiceTests
     }
 
     [Fact]
-    public async Task Execute_ShouldPreserveLocalColumns_IsEvaluationEligible_UserId_IsActive()
+    public async Task Execute_ShouldOverwriteIsEvaluationEligible_AndPreserveUserId_IsActive()
     {
         var (context, service, _) = CreateService();
 
@@ -487,7 +490,7 @@ public class OrgImportServiceTests
             EmploymentStatus = EmploymentStatus.Active,
             HireDate = new DateOnly(2021, 6, 1),
             UserId = 99,
-            IsEvaluationEligible = false, // Local customization
+            IsEvaluationEligible = false, // Local customization prior to import
             IsActive = false              // Local data-correction flag
         });
         await context.SaveChangesAsync();
@@ -496,6 +499,7 @@ public class OrgImportServiceTests
         {
             var wsE = wb.Worksheet("Employees");
             wsE.Cell(3, 3).Value = "Alice Name Updated In HR";
+            wsE.Cell(3, 18).Value = 1; // File flag is 1
         });
 
         var (success, response, error, status) = await service.ExecuteAsync(stream, "update.xlsx", stream.Length, 1, "127.0.0.1");
@@ -505,10 +509,232 @@ public class OrgImportServiceTests
 
         var emp = await context.Employees.FindAsync(1001);
         emp!.FullName.Should().Be("Alice Name Updated In HR");
-        // Local columns must NOT be overwritten
+        // UserId and IsActive are preserved; IsEvaluationEligible is overwritten from file (P1 flip)
         emp.UserId.Should().Be(99);
-        emp.IsEvaluationEligible.Should().BeFalse();
+        emp.IsEvaluationEligible.Should().BeTrue();
         emp.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ELIG_9_ImportResetsAbsentEmployeeFlagToZero_AndSetsPresentEmployeesToFileValues()
+    {
+        var (context, service, _) = CreateService();
+
+        // Seed DB with Employee 1000 (eligible) and Employee 2000 (eligible, absent from upcoming file)
+        context.Companies.Add(new Company { CompanyId = 1, Name = "Acme Global Operations" });
+        context.Positions.Add(new Position { PositionId = 500, Name = "CEO", NLevel = 1 });
+        context.Positions.Add(new Position { PositionId = 501, Name = "Architect", NLevel = 2 });
+        context.Employees.Add(new Employee
+        {
+            EmployeeId = 1000,
+            EmployeeNumber = "EMP-1000",
+            FullName = "CEO",
+            CompanyId = 1,
+            PositionId = 500,
+            IsEvaluationEligible = true,
+            HireDate = new DateOnly(2020, 1, 1)
+        });
+        context.Employees.Add(new Employee
+        {
+            EmployeeId = 2000,
+            EmployeeNumber = "EMP-2000",
+            FullName = "Absent Emp",
+            CompanyId = 1,
+            PositionId = 501,
+            IsEvaluationEligible = true,
+            HireDate = new DateOnly(2020, 1, 1)
+        });
+        await context.SaveChangesAsync();
+
+        // Import file has Employee 1000 (flag 1) and Employee 1001 (flag 0). Employee 2000 is absent!
+        using var stream = CreateValidWorkbookStream(wb =>
+        {
+            var wsE = wb.Worksheet("Employees");
+            wsE.Cell(2, 18).Value = 1; // 1000 present with 1
+            wsE.Cell(3, 18).Value = 0; // 1001 present with 0
+        });
+
+        var (success, response, _, status) = await service.ExecuteAsync(stream, "sync.xlsx", stream.Length, 1, "127.0.0.1");
+
+        status.Should().Be(200);
+        success.Should().BeTrue();
+        response!.Summary.AbsentResetToIneligible.Should().Be(1);
+        response.Summary.FlagSetEligible.Should().Be(1);
+        response.Summary.FlagSetIneligible.Should().Be(1);
+
+        var emp1000 = await context.Employees.FindAsync(1000);
+        var emp1001 = await context.Employees.FindAsync(1001);
+        var emp2000 = await context.Employees.FindAsync(2000);
+
+        emp1000!.IsEvaluationEligible.Should().BeTrue();
+        emp1001!.IsEvaluationEligible.Should().BeFalse();
+        emp2000!.IsEvaluationEligible.Should().BeFalse(); // Absent -> reset to 0!
+    }
+
+    [Fact]
+    public async Task ELIG_10_FailedImport_RollsBackReset_FlagsUnchanged()
+    {
+        var (context, service, _) = CreateService();
+
+        // Seed DB with Employee 1000 (eligible) and Employee 2000 (eligible)
+        context.Companies.Add(new Company { CompanyId = 1, Name = "Acme Global Operations" });
+        context.Positions.Add(new Position { PositionId = 500, Name = "CEO", NLevel = 1 });
+        context.Employees.Add(new Employee
+        {
+            EmployeeId = 1000,
+            EmployeeNumber = "EMP-1000",
+            FullName = "CEO",
+            CompanyId = 1,
+            PositionId = 500,
+            IsEvaluationEligible = true,
+            HireDate = new DateOnly(2020, 1, 1)
+        });
+        context.Employees.Add(new Employee
+        {
+            EmployeeId = 2000,
+            EmployeeNumber = "EMP-2000",
+            FullName = "Absent Emp",
+            CompanyId = 1,
+            PositionId = 500,
+            IsEvaluationEligible = true,
+            HireDate = new DateOnly(2020, 1, 1)
+        });
+        await context.SaveChangesAsync();
+
+        // Create file where row has an invalid CompanyId 9999 -> triggers validation failure
+        using var stream = CreateValidWorkbookStream(wb =>
+        {
+            var wsE = wb.Worksheet("Employees");
+            wsE.Cell(2, 5).Value = 9999; // Non-existent company
+        });
+
+        var (success, response, error, status) = await service.ExecuteAsync(stream, "fail.xlsx", stream.Length, 1, "127.0.0.1");
+
+        status.Should().Be(400);
+        success.Should().BeFalse();
+
+        // Verify neither flag was modified (P0 case: rollback preserves flags)
+        var emp1000 = await context.Employees.FindAsync(1000);
+        var emp2000 = await context.Employees.FindAsync(2000);
+
+        emp1000!.IsEvaluationEligible.Should().BeTrue();
+        emp2000!.IsEvaluationEligible.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ELIG_11_DryRun_ReportsBlastRadiusMetrics_AndModifiesZeroFlags()
+    {
+        var (context, service, _) = CreateService();
+
+        // Seed DB with Employee 1000 and Employee 2000 both eligible
+        context.Companies.Add(new Company { CompanyId = 1, Name = "Acme Global Operations" });
+        context.Positions.Add(new Position { PositionId = 500, Name = "CEO", NLevel = 1 });
+        context.Employees.Add(new Employee
+        {
+            EmployeeId = 1000,
+            EmployeeNumber = "EMP-1000",
+            FullName = "CEO",
+            CompanyId = 1,
+            PositionId = 500,
+            IsEvaluationEligible = true,
+            HireDate = new DateOnly(2020, 1, 1)
+        });
+        context.Employees.Add(new Employee
+        {
+            EmployeeId = 2000,
+            EmployeeNumber = "EMP-2000",
+            FullName = "Absent Emp",
+            CompanyId = 1,
+            PositionId = 500,
+            IsEvaluationEligible = true,
+            HireDate = new DateOnly(2020, 1, 1)
+        });
+        await context.SaveChangesAsync();
+
+        // File has Employee 1000 (flag 1) and Employee 1001 (flag 1). Employee 2000 is absent.
+        using var stream = CreateValidWorkbookStream(wb =>
+        {
+            var wsE = wb.Worksheet("Employees");
+            wsE.Cell(2, 18).Value = 1;
+            wsE.Cell(3, 18).Value = 1;
+        });
+
+        var (success, result, _, status) = await service.DryRunAsync(stream, "dryrun.xlsx", stream.Length, 1);
+
+        status.Should().Be(200);
+        success.Should().BeTrue();
+        result!.IsValid.Should().BeTrue();
+        result.Summary.AbsentResetToIneligible.Should().Be(1);
+        result.Summary.FlagSetEligible.Should().Be(2);
+        result.Summary.FlagSetIneligible.Should().Be(0);
+
+        // Verify zero database modifications occurred
+        var emp2000 = await context.Employees.FindAsync(2000);
+        emp2000!.IsEvaluationEligible.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ELIG_12_AdminToggleAfterImportWorks_NextImportOverwritesPerFile()
+    {
+        var (context, service, _) = CreateService();
+
+        // 1. Initial import sets Employee 1000 to flag 0
+        using (var stream1 = CreateValidWorkbookStream(wb =>
+        {
+            var wsE = wb.Worksheet("Employees");
+            wsE.Cell(2, 18).Value = 0; // Ineligible
+        }))
+        {
+            var (s1, r1, _, _) = await service.ExecuteAsync(stream1, "import1.xlsx", stream1.Length, 1, "127.0.0.1");
+            s1.Should().BeTrue();
+        }
+
+        var emp = await context.Employees.FindAsync(1000);
+        emp!.IsEvaluationEligible.Should().BeFalse();
+
+        // 2. Admin overrides flag to true (review-stage adjustment)
+        emp.IsEvaluationEligible = true;
+        emp.UpdatedAtUtc = DateTime.UtcNow;
+        await context.SaveChangesAsync();
+
+        var empAfterAdmin = await context.Employees.FindAsync(1000);
+        empAfterAdmin!.IsEvaluationEligible.Should().BeTrue();
+
+        // 3. Next import re-establishes file authority (file has flag 0)
+        using (var stream2 = CreateValidWorkbookStream(wb =>
+        {
+            var wsE = wb.Worksheet("Employees");
+            wsE.Cell(2, 18).Value = 0; // File says 0!
+        }))
+        {
+            var (s2, r2, _, _) = await service.ExecuteAsync(stream2, "import2.xlsx", stream2.Length, 1, "127.0.0.1");
+            s2.Should().BeTrue();
+        }
+
+        var empFinal = await context.Employees.FindAsync(1000);
+        empFinal!.IsEvaluationEligible.Should().BeFalse(); // Last-write-wins: file overwrote admin override!
+    }
+
+    [Fact]
+    public async Task StrictFlagValidation_MissingOrNonBoolean_RejectedAsRowError()
+    {
+        var (_, service, _) = CreateService();
+
+        // Provide invalid flag value "maybe" in cell 18
+        using var stream = CreateValidWorkbookStream(wb =>
+        {
+            var wsE = wb.Worksheet("Employees");
+            wsE.Cell(2, 18).Value = "maybe";
+        });
+
+        var (success, result, _, status) = await service.DryRunAsync(stream, "invalid_flag.xlsx", stream.Length, 1);
+
+        status.Should().Be(200);
+        result!.IsValid.Should().BeFalse();
+        result.Summary.Errors.Should().Contain(e =>
+            e.SheetName == "Employees" &&
+            e.FieldName == "IsEvaluationEligible" &&
+            e.Reason.Contains("Value must be 1 (Eligible) or 0 (Ineligible)"));
     }
 
     [Fact]

@@ -71,7 +71,8 @@ public class OrgImportEndpointsTests : IClassFixture<CustomWebApplicationFactory
             "EmployeeId", "EmployeeNumber", "FullName", "Email",
             "CompanyId", "CompanyName", "DepartmentId", "DepartmentName",
             "SectionId", "SectionName", "PositionId", "PositionName", "NLevel",
-            "ManagerEmployeeId", "EmploymentStatus", "HireDate", "ResignationDate"
+            "ManagerEmployeeId", "EmploymentStatus", "HireDate", "ResignationDate",
+            "IsEvaluationEligible"
         };
         for (int i = 0; i < headers.Length; i++)
         {
@@ -95,6 +96,7 @@ public class OrgImportEndpointsTests : IClassFixture<CustomWebApplicationFactory
         wsE.Cell(2, 15).Value = 1;
         wsE.Cell(2, 16).Value = "2022-01-01";
         wsE.Cell(2, 17).Value = "";
+        wsE.Cell(2, 18).Value = 1;
 
         using var ms = new MemoryStream();
         wb.SaveAs(ms);

@@ -1534,6 +1534,171 @@
           }
         }
       }
+    },
+    "/api/v1/eligibility/summary": {
+      "get": {
+        "tags": [
+          "Eligibility"
+        ],
+        "summary": "Retrieve overall headcount and company breakdown for evaluation eligibility",
+        "operationId": "GetEligibilitySummary",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/eligibility/employees": {
+      "get": {
+        "tags": [
+          "Eligibility"
+        ],
+        "summary": "Query employees by evaluation eligibility (defaults to eligible population)",
+        "operationId": "SearchEligibleEmployees",
+        "parameters": [
+          {
+            "name": "isEligible",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "companyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "departmentId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/eligibility/excluded": {
+      "get": {
+        "tags": [
+          "Eligibility"
+        ],
+        "summary": "Query excluded employees where IsEvaluationEligible is false (reason: hr-flag-false)",
+        "operationId": "GetExcludedEmployees",
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "departmentId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/eligibility/bulk-flag-update": {
+      "post": {
+        "tags": [
+          "Eligibility"
+        ],
+        "summary": "Update evaluation eligibility flag for up to 500 employees in an AllOrNothing transaction",
+        "operationId": "BulkFlagUpdate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkFlagUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1555,6 +1720,29 @@
               "type": "integer",
               "format": "int32"
             }
+          }
+        }
+      },
+      "BulkFlagUpdateRequest": {
+        "required": [
+          "employeeIds",
+          "isEvaluationEligible",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "isEvaluationEligible": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
           }
         }
       },
@@ -1795,6 +1983,9 @@
     },
     {
       "name": "Organization Import"
+    },
+    {
+      "name": "Eligibility"
     }
   ]
 }

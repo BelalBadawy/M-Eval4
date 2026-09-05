@@ -42,6 +42,7 @@ builder.Services.AddScoped<IHierarchyService, HierarchyService>();
 builder.Services.AddScoped<IOrgStructureService, OrgStructureService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddScoped<IOrgImportService, OrgImportService>();
+builder.Services.AddScoped<IEligibilityService, EligibilityService>();
 builder.Services.AddHostedService<MEval.Api.Workers.DefaultPasswordInactivityWorker>();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, MEval.Api.Security.PermissionAuthorizationHandler>();
 
@@ -143,6 +144,7 @@ app.MapAuditEndpoints();
 app.MapOrgEndpoints();
 app.MapEmployeeEndpoints();
 app.MapOrgImportEndpoints();
+app.MapEligibilityEndpoints();
 
 app.Run();
 
